@@ -47,6 +47,29 @@ export function HelpPage() {
       </section>
 
       <section className="panel prose">
+        <h2>Table effects</h2>
+        <p>
+          Some entries tell you to roll again. When one comes up, those dice are rolled for you and
+          listed under the roll as, for example, <em>“D8 again (from D20)”</em>. In the default
+          tables:
+        </p>
+        <ul>
+          <li>
+            <strong>D20 7, False Safety</strong> rolls the D20 again.
+          </li>
+          <li>
+            <strong>D20 20, Chaotic Event</strong> rolls the D8 and D12 again.
+          </li>
+        </ul>
+        <p>
+          Add effects to your own entries with the <strong>Effect</strong> button in{' '}
+          <strong>Edit Tables</strong>. Extra rolls can trigger their own effects, up to six per
+          roll. Dice you've switched off are never rolled, and you can turn effects off in{' '}
+          <strong>Settings</strong>.
+        </p>
+      </section>
+
+      <section className="panel prose">
         <h2>The dice</h2>
         <table>
           <thead>

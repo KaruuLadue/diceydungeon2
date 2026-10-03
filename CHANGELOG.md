@@ -4,6 +4,24 @@ All notable changes to Dicey Dungeon 2 are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-03
+
+Table effects: entries that say "roll again" now do.
+
+### Added
+
+- Table entries can roll other dice again. Extra results appear under the roll, labelled with their cause (e.g. "D8 again (from D20)"), and are included in Export Log
+- Classic tables: D20 7 (False Safety) rolls the D20 again; D20 20 (Chaotic Event) rolls the D8 and D12 again
+- Effect editor on every entry in Edit Tables
+- Settings switch to turn table effects off
+- Instructions section on table effects
+
+### Changed
+
+- Tables are saved and exported with effects. Older table files and saves (plain text entries, including v1's) still load
+- Extra rolls can trigger their own effects, up to six per roll; dice switched off in Settings are never rolled
+- MIT licence (was GPL v3)
+
 ## [0.2.0] - 2026-10-03
 
 Everything Dicey Dungeon 1 does, rebuilt with v1's rules.

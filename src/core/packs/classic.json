@@ -51,7 +51,10 @@
     "Cursed Object - Loot found is cursed or has negative effects.",
     "Deep Darkness - The room is dark or visibility is impaired.",
     "Empowered Ground - Entities affected positively or negatively.",
-    "False Safety - Harmless appears dangerous; roll again.",
+    {
+      "text": "False Safety - Harmless appears dangerous; roll again.",
+      "reroll": ["D20"]
+    },
     "Arcane Instability - Magical or tech effects are unstable.",
     "Mysterious Figure - Entity could be friend or foe.",
     "Guardian Presence - Items guarded by an entity or mechanism.",
@@ -64,7 +67,10 @@
     "Unexpected Aid - Something helpful appears.",
     "Mimicry - An object or part is not what it seems.",
     "Blessing or Inspiration - Party gains motivation or insight.",
-    "Chaotic Event - Roll D8 and D12 again for a twist."
+    {
+      "text": "Chaotic Event - Roll D8 and D12 again for a twist.",
+      "reroll": ["D8", "D12"]
+    }
   ],
   "D100": [
     "5ft length",

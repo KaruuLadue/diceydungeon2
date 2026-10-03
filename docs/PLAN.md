@@ -43,7 +43,7 @@ Each phase ends with something deployed.
 | --- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | 0   | Setup                    | Repo, tooling, CI, Pages deploy, placeholder page ✅                                                                       |
 | 1   | Match v1                 | Everything v1 does, with v1's rules: tables, rolling, room drawings, settings, history, export, table editor, v1 import ✅ |
-| 2   | Table effects            | Entries that trigger effects ("roll again", extra exits), seeded per-roll reproducibility exposed in the interface         |
+| 2   | Table effects            | Entries can roll other dice again ("roll again", "Roll D8 and D12 again"), editable per entry ✅                           |
 | 3   | Connected map (playable) | Click a door, a room attaches, pan and zoom, room details                                                                  |
 | 4   | Saving and sharing       | Multiple dungeons, undo, export and import of whole dungeons, share links by seed                                          |
 | 5   | Packs                    | 2–3 themed packs (crypt, sewer, derelict ship), choosing a pack per dungeon                                                |

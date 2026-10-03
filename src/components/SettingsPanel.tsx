@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function SettingsPanel({ settings, onChange }: Props) {
-  const toggle = (key: 'highlightMatches' | 'soundEnabled' | 'showRoomMaps') =>
+  const toggle = (key: 'highlightMatches' | 'soundEnabled' | 'showRoomMaps' | 'applyEffects') =>
     onChange({ ...settings, [key]: !settings[key] });
 
   return (
@@ -38,6 +38,14 @@ export function SettingsPanel({ settings, onChange }: Props) {
             onChange={() => toggle('showRoomMaps')}
           />
           Room drawings
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={settings.applyEffects}
+            onChange={() => toggle('applyEffects')}
+          />
+          Table effects (roll again)
         </label>
       </fieldset>
 

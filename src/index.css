@@ -227,6 +227,17 @@ a:focus-visible {
   background: var(--gold-soft);
 }
 
+.result-line.extra {
+  padding-left: 12px;
+  color: #e8dcb0;
+  font-style: italic;
+}
+
+.extra-arrow {
+  color: var(--gold);
+  font-style: normal;
+}
+
 .die-icon {
   flex: none;
   width: 28px;
@@ -346,20 +357,20 @@ a:focus-visible {
   list-style: none;
 }
 
-.entry-list li {
+.entry-main {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.entry-list label {
+.entry-main label {
   flex: none;
   width: 2.2em;
   color: var(--gold);
   text-align: right;
 }
 
-.entry-list input {
+.entry-main input {
   flex: 1;
   min-width: 0;
   padding: 6px 8px;
@@ -370,8 +381,52 @@ a:focus-visible {
   font: inherit;
 }
 
-.entry-list input[aria-invalid='true'] {
+.entry-main input[aria-invalid='true'] {
   border-color: var(--danger);
+}
+
+.effect-button {
+  flex: none;
+  min-width: 5.5em;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid #666;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.effect-button.has-effect {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.effect-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 6px 0 4px calc(2.2em + 8px);
+  padding: 6px 12px 10px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+.effect-editor legend {
+  padding: 0 6px;
+  color: var(--gold);
+}
+
+.effect-editor label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.effect-editor input {
+  accent-color: var(--gold);
 }
 
 /* Instructions */

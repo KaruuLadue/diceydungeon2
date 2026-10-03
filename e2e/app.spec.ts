@@ -24,7 +24,7 @@ test('rolls rooms with all seven dice and a drawing', async ({ page }) => {
 
   const card = page.locator('.roll-card').first();
   await expect(card.getByRole('heading', { name: 'Roll 1' })).toBeVisible();
-  await expect(card.locator('.result-line')).toHaveCount(7);
+  await expect(card.locator('.result-line:not(.extra)')).toHaveCount(7);
   await expect(card.locator('.result-line').first()).toContainText(/^D4: [1-4] \(.+\)$/);
   await expect(card.getByRole('img', { name: /^Room \d+ft wide by \d+ft long/ })).toBeVisible();
 });
@@ -60,7 +60,7 @@ test('settings turn drawings and dice on and off, and persist', async ({ page })
   await page.getByLabel('D20 (Room Modifier)').uncheck();
   await page.getByRole('button', { name: 'Roll', exact: true }).click();
   const newest = page.locator('.roll-card').first();
-  await expect(newest.locator('.result-line')).toHaveCount(6);
+  await expect(newest.locator('.result-line:not(.extra)')).toHaveCount(6);
   await expect(newest.locator('[data-die="D20"]')).toHaveCount(0);
 
   await page.reload();
@@ -157,4 +157,38 @@ test('shows the instructions', async ({ page }) => {
   await page.getByRole('link', { name: 'Instructions' }).click();
   await expect(page.getByRole('heading', { name: 'What is Dicey Dungeon?' })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Room Length' })).toBeVisible();
+});
+
+test('table effects roll extra dice and can be switched off', async ({ page }) => {
+  // Give every D6 entry the effect "roll the D8 again"
+  await page.goto('./#/tables');
+  const d6 = page.locator('section', { has: page.getByRole('heading', { name: /D6:/ }) });
+  for (let i = 1; i <= 6; i++) {
+    await d6.getByRole('button', { name: `Effect for D6 entry ${i}` }).click();
+    await d6
+      .getByRole('group', { name: 'When this comes up, also roll:' })
+      .getByLabel('D8')
+      .check();
+    await d6.getByRole('button', { name: `Effect for D6 entry ${i}` }).click();
+  }
+  await expect(d6.getByRole('button', { name: /Rolls D8 again/ })).toHaveCount(6);
+  await d6.getByRole('button', { name: 'Save Table' }).click();
+
+  await page.getByRole('link', { name: 'Back to Rolling' }).click();
+  await page.getByRole('button', { name: 'Roll', exact: true }).click();
+  const extra = page.locator('.roll-card').first().locator('.result-line.extra');
+  await expect(extra).toHaveCount(1);
+  await expect(extra).toContainText(/^↳D8 again \(from D6\): [1-8] \(.+\)$/);
+
+  // The effect is saved with the table
+  await page.reload();
+  await page.goto('./#/tables');
+  await expect(d6.getByRole('button', { name: /Rolls D8 again/ })).toHaveCount(6);
+
+  // Switching effects off stops extra rolls
+  await page.getByRole('link', { name: 'Back to Rolling' }).click();
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByLabel('Table effects (roll again)').uncheck();
+  await page.getByRole('button', { name: 'Roll', exact: true }).click();
+  await expect(page.locator('.roll-card').first().locator('.result-line.extra')).toHaveCount(0);
 });

@@ -17,7 +17,8 @@ export interface KeyValueStore {
 const KEYS = {
   settings: { key: 'dd2.settings', version: 1 },
   history: { key: 'dd2.history', version: 1 },
-  tables: { key: 'dd2.tables', version: 1 },
+  // v2: entries can be objects with effects. v1 (plain text entries) still loads.
+  tables: { key: 'dd2.tables', version: 2 },
 } as const;
 
 /** Where v1 saved custom tables (same origin, so v2 can read them) */
@@ -65,11 +66,24 @@ function isRollRecord(value: unknown): value is RollRecord {
     return false;
   }
   const results = record.results as Record<string, unknown>;
-  return Object.entries(results).every(([die, result]) => {
-    if (!(DICE as readonly string[]).includes(die)) return false;
-    const r = result as Record<string, unknown> | null;
-    return typeof r?.value === 'number' && typeof r.description === 'string';
-  });
+  const validResults = Object.entries(results).every(
+    ([die, result]) => isDie(die) && isDieResult(result),
+  );
+  // Records saved before table effects existed have no `extra`
+  const validExtra =
+    record.extra === undefined ||
+    (Array.isArray(record.extra) &&
+      record.extra.every((extra: Record<string, unknown> | null) => {
+        return isDieResult(extra) && isDie(extra?.die) && isDie(extra?.from);
+      }));
+  return validResults && validExtra;
+}
+
+const isDie = (value: unknown) => (DICE as readonly unknown[]).includes(value);
+
+function isDieResult(value: unknown): boolean {
+  const r = value as Record<string, unknown> | null;
+  return typeof r?.value === 'number' && typeof r.description === 'string';
 }
 
 export function loadHistory(store: KeyValueStore): RollRecord[] {
@@ -89,15 +103,25 @@ export function saveTables(store: KeyValueStore, tables: TableSet): boolean {
   return write(store, KEYS.tables.key, KEYS.tables.version, tables);
 }
 
-/** Custom tables saved by Dicey Dungeon 1, or null if there are none usable */
+/**
+ * Custom tables saved by Dicey Dungeon 1, or null if there are none usable or
+ * they match the Classic text. v1 entries are plain text, so an entry whose
+ * text is unchanged keeps the Classic entry's effect.
+ */
 export function loadV1Tables(store: KeyValueStore): TableSet | null {
   try {
     const raw = store.getItem(V1_TABLES_KEY);
     if (raw === null) return null;
     const merged = mergeTables(CLASSIC_TABLES, JSON.parse(raw));
-    const changed = DICE.some(
-      (die) => JSON.stringify(merged[die]) !== JSON.stringify(CLASSIC_TABLES[die]),
-    );
+    let changed = false;
+    for (const die of DICE) {
+      merged[die] = merged[die].map((entry, i) => {
+        const classic = CLASSIC_TABLES[die][i];
+        if (classic && entry.text === classic.text) return classic;
+        changed = true;
+        return entry;
+      });
+    }
     return changed ? merged : null;
   } catch {
     return null;

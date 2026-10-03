@@ -1,5 +1,5 @@
 import { roomLayout } from '../core/layout';
-import { matchingValues, orderedResults, type RollRecord } from '../core/roll';
+import { extraLabel, matchingValues, orderedResults, type RollRecord } from '../core/roll';
 import { DieIcon } from './DieIcon';
 import { RoomMap } from './RoomMap';
 
@@ -32,6 +32,17 @@ export function RollCard({ record, number, highlightMatches, showRoomMap }: Prop
               <DieIcon die={die} />
               <span>
                 {die}: {result.value} {result.description && `(${result.description})`}
+              </span>
+            </li>
+          ))}
+          {record.extra?.map((extra, index) => (
+            <li key={`extra-${index}`} className="result-line extra" data-die={extra.die}>
+              <span className="extra-arrow" aria-hidden="true">
+                ↳
+              </span>
+              <DieIcon die={extra.die} />
+              <span>
+                {extraLabel(extra)}: {extra.value} {extra.description && `(${extra.description})`}
               </span>
             </li>
           ))}

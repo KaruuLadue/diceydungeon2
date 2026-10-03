@@ -77,7 +77,10 @@ export default function App() {
 
   const roll = () => {
     if (settings.soundEnabled) playRollSound();
-    updateHistory([...history, rollRoom(tables, settings.enabledDice, randomSeed())]);
+    const record = rollRoom(tables, settings.enabledDice, randomSeed(), {
+      applyEffects: settings.applyEffects,
+    });
+    updateHistory([...history, record]);
   };
 
   const exportLog = () => downloadFile('roll_history.txt', historyToText(history));

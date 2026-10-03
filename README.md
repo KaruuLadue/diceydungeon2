@@ -8,7 +8,7 @@ The original Dicey Dungeon is still available at https://karuuladue.github.io/Di
 
 ## Status
 
-Version 0.2 does everything Dicey Dungeon 1 does (rolling, room drawings, settings, roll history, export, table editing and import). The connected map comes next. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped.
+Version 0.3 does everything Dicey Dungeon 1 does (rolling, room drawings, settings, roll history, export, table editing and import), and table entries can now roll other dice again. The connected map comes next. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped.
 
 ## Development
 

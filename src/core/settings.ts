@@ -5,6 +5,7 @@ export interface Settings {
   highlightMatches: boolean;
   soundEnabled: boolean;
   showRoomMaps: boolean;
+  applyEffects: boolean;
   enabledDice: EnabledDice;
 }
 
@@ -12,6 +13,7 @@ export const DEFAULT_SETTINGS: Settings = {
   highlightMatches: true,
   soundEnabled: true,
   showRoomMaps: true,
+  applyEffects: true,
   enabledDice: { D4: true, D6: true, D8: true, D10: true, D12: true, D20: true, D100: true },
 };
 
@@ -20,7 +22,7 @@ export function parseSettings(data: unknown): Settings {
   const settings = structuredClone(DEFAULT_SETTINGS);
   if (typeof data !== 'object' || data === null) return settings;
   const raw = data as Record<string, unknown>;
-  for (const key of ['highlightMatches', 'soundEnabled', 'showRoomMaps'] as const) {
+  for (const key of ['highlightMatches', 'soundEnabled', 'showRoomMaps', 'applyEffects'] as const) {
     if (typeof raw[key] === 'boolean') settings[key] = raw[key];
   }
   if (typeof raw.enabledDice === 'object' && raw.enabledDice !== null) {

@@ -7,10 +7,13 @@ import {
   DIE_INFO,
   findEmptyEntry,
   parseTablesFile,
+  sameTable,
+  type Entry,
   type TableSet,
 } from '../core/tables';
 import { downloadFile } from '../lib/download';
 import { DieIcon } from './DieIcon';
+import { EntryRow } from './EntryRow';
 import type { Notify } from './Toast';
 
 interface Props {
@@ -20,38 +23,38 @@ interface Props {
   notify: Notify;
 }
 
-const sameEntries = (a: string[], b: string[]) => a.every((entry, i) => entry === b[i]);
+const trimmed = (entries: Entry[]): Entry[] =>
+  entries.map((entry) => ({ ...entry, text: entry.text.trim() }));
 
 export function TablesPage({ tables, v1Tables, onSave, notify }: Props) {
   // Edits stay in this draft until saved
   const [draft, setDraft] = useState<TableSet>(tables);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const setEntry = (die: Die, index: number, value: string) =>
+  const setEntry = (die: Die, index: number, entry: Entry) =>
     setDraft((current) => ({
       ...current,
-      [die]: current[die].map((entry, i) => (i === index ? value : entry)),
+      [die]: current[die].map((existing, i) => (i === index ? entry : existing)),
     }));
 
-  const setTable = (die: Die, entries: string[]) =>
+  const setTable = (die: Die, entries: Entry[]) =>
     setDraft((current) => ({ ...current, [die]: entries }));
 
+  // Random entries replace the text and clear any effect
   const randomize = (die: Die, index?: number) => {
     const rng = createRng(randomSeed());
     setDraft((current) => ({
       ...current,
       [die]: current[die].map((entry, i) =>
-        index === undefined || i === index ? randomEntry(die, rng) : entry,
+        index === undefined || i === index ? { text: randomEntry(die, rng) } : entry,
       ),
     }));
   };
 
-  const trimmed = (die: Die) => draft[die].map((entry) => entry.trim());
-
   const saveTable = (die: Die) => {
     const problem = findEmptyEntry(die, draft[die]);
     if (problem) return notify(problem, 'error');
-    const next = { ...tables, [die]: trimmed(die) };
+    const next = { ...tables, [die]: trimmed(draft[die]) };
     onSave(next);
     setTable(die, next[die]);
     notify(`${die} table saved.`);
@@ -62,7 +65,7 @@ export function TablesPage({ tables, v1Tables, onSave, notify }: Props) {
       const problem = findEmptyEntry(die, draft[die]);
       if (problem) return notify(problem, 'error');
     }
-    const next = Object.fromEntries(DICE.map((die) => [die, trimmed(die)])) as TableSet;
+    const next = Object.fromEntries(DICE.map((die) => [die, trimmed(draft[die])])) as TableSet;
     onSave(next);
     setDraft(next);
     notify('All tables saved.');
@@ -91,7 +94,7 @@ export function TablesPage({ tables, v1Tables, onSave, notify }: Props) {
     notify('Loaded your Dicey Dungeon 1 tables. Save to keep them.');
   };
 
-  const unsavedCount = DICE.filter((die) => !sameEntries(draft[die], tables[die])).length;
+  const unsavedCount = DICE.filter((die) => !sameTable(draft[die], tables[die])).length;
 
   return (
     <>
@@ -119,7 +122,8 @@ export function TablesPage({ tables, v1Tables, onSave, notify }: Props) {
       </div>
 
       <p className="panel muted">
-        Edit what each roll means. Changes are kept in this browser once saved.
+        Edit what each roll means. Use <strong>Effect</strong> to make an entry roll other dice
+        again when it comes up. Changes are kept in this browser once saved.
         {unsavedCount > 0 && (
           <strong className="unsaved">
             {' '}
@@ -138,7 +142,7 @@ export function TablesPage({ tables, v1Tables, onSave, notify }: Props) {
       )}
 
       {DICE.map((die) => {
-        const dirty = !sameEntries(draft[die], tables[die]);
+        const dirty = !sameTable(draft[die], tables[die]);
         return (
           <section key={die} className="panel table-section" aria-labelledby={`table-${die}`}>
             <header className="table-header">
@@ -147,7 +151,7 @@ export function TablesPage({ tables, v1Tables, onSave, notify }: Props) {
                 {dirty && <span className="unsaved-tag">unsaved</span>}
               </h2>
               <div className="table-buttons">
-                <button type="button" onClick={() => setTable(die, [...CLASSIC_TABLES[die]])}>
+                <button type="button" onClick={() => setTable(die, CLASSIC_TABLES[die])}>
                   Defaults
                 </button>
                 {canRandomize(die) && (
@@ -163,26 +167,14 @@ export function TablesPage({ tables, v1Tables, onSave, notify }: Props) {
             <p className="muted">{DIE_INFO[die].hint}</p>
             <ol className="entry-list">
               {draft[die].map((entry, index) => (
-                <li key={index}>
-                  <label htmlFor={`${die}-${index}`}>{index + 1}</label>
-                  <input
-                    id={`${die}-${index}`}
-                    type="text"
-                    value={entry}
-                    aria-invalid={entry.trim() === ''}
-                    onChange={(event) => setEntry(die, index, event.target.value)}
-                  />
-                  {canRandomize(die) && (
-                    <button
-                      type="button"
-                      className="icon-button"
-                      aria-label={`Randomize ${die} entry ${index + 1}`}
-                      onClick={() => randomize(die, index)}
-                    >
-                      🎲
-                    </button>
-                  )}
-                </li>
+                <EntryRow
+                  key={index}
+                  die={die}
+                  index={index}
+                  entry={entry}
+                  onChange={(next) => setEntry(die, index, next)}
+                  onRandomize={canRandomize(die) ? () => randomize(die, index) : undefined}
+                />
               ))}
             </ol>
           </section>

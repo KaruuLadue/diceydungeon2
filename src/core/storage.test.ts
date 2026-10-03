@@ -51,6 +51,21 @@ describe('history storage', () => {
     });
     expect(loadHistory(store)).toEqual([good]);
   });
+
+  it('round-trips extra rolls and drops records with malformed ones', () => {
+    const withExtra = {
+      ...rollRoom(CLASSIC_TABLES, DEFAULT_SETTINGS.enabledDice, 1),
+      extra: [{ die: 'D8', from: 'D20', value: 3, description: 'x' }],
+    };
+    const broken = {
+      ...withExtra,
+      extra: [{ die: 'D9', from: 'D20', value: 3, description: 'x' }],
+    };
+    const store = memoryStore({
+      'dd2.history': JSON.stringify({ version: 1, data: [withExtra, broken] }),
+    });
+    expect(loadHistory(store)).toEqual([withExtra]);
+  });
 });
 
 describe('tables storage', () => {
@@ -58,11 +73,26 @@ describe('tables storage', () => {
     expect(loadTables(memoryStore())).toEqual(CLASSIC_TABLES);
   });
 
-  it('round-trips custom tables', () => {
+  it('round-trips custom tables with effects', () => {
     const store = memoryStore();
-    const custom = { ...CLASSIC_TABLES, D4: ['w', 'x', 'y', 'z'] };
+    const custom = {
+      ...CLASSIC_TABLES,
+      D4: [{ text: 'w', reroll: ['D8' as const] }, { text: 'x' }, { text: 'y' }, { text: 'z' }],
+    };
     saveTables(store, custom);
     expect(loadTables(store)).toEqual(custom);
+  });
+
+  it('still loads tables saved in the older plain-text format', () => {
+    const store = memoryStore({
+      'dd2.tables': JSON.stringify({ version: 1, data: { D4: ['w', 'x', 'y', 'z'] } }),
+    });
+    expect(loadTables(store).D4).toEqual([
+      { text: 'w' },
+      { text: 'x' },
+      { text: 'y' },
+      { text: 'z' },
+    ]);
   });
 });
 
@@ -75,8 +105,20 @@ describe('loadV1Tables', () => {
       }),
     });
     const tables = loadV1Tables(store);
-    expect(tables?.D8[0]).toBe('v1 encounter 0');
+    expect(tables?.D8[0]).toEqual({ text: 'v1 encounter 0' });
     expect(tables?.D100).toEqual(CLASSIC_TABLES.D100);
+  });
+
+  it('treats v1’s default tables (plain text) as unchanged, keeping Classic effects', () => {
+    const v1Defaults = Object.fromEntries(
+      Object.entries(CLASSIC_TABLES).map(([die, entries]) => [die, entries.map((e) => e.text)]),
+    );
+    expect(loadV1Tables(memoryStore({ customRollTables: JSON.stringify(v1Defaults) }))).toBeNull();
+
+    v1Defaults.D8![0] = 'My encounter';
+    const tables = loadV1Tables(memoryStore({ customRollTables: JSON.stringify(v1Defaults) }));
+    expect(tables?.D8[0]).toEqual({ text: 'My encounter' });
+    expect(tables?.D20[19]).toEqual(CLASSIC_TABLES.D20[19]);
   });
 
   it('returns null when v1 has nothing different from the defaults', () => {
