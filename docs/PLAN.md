@@ -6,6 +6,9 @@
 - **Core idea:** a connected dungeon map. Rolling from an exit attaches a new room there, building a map you can scroll and zoom.
 - **Stack:** Vite, React and TypeScript, deployed as a static site to GitHub Pages.
 - **Repo:** this one. v1 stays live and unchanged at https://karuuladue.github.io/DiceyDungeon/.
+- **Exits on the map:** placed on random walls, with the hallway following the door you clicked. The single-room view keeps v1’s top, left, right order.
+- **D100:** stays a D10 for room length (5–50ft), as in v1.
+- **Licence:** MIT, for both v1 and v2.
 
 ## How it plays
 
@@ -50,8 +53,3 @@ Each phase ends with something deployed.
 Phase 1 was moved ahead of the connected map on 2026-10-03 so v2 reaches feature parity with v1 before adding new features.
 
 Later ideas, not planned yet: stairs to multiple levels, non-rectangular rooms, furniture and hazard icons.
-
-## Open questions
-
-- **Classic rules for the map.** Phase 1 keeps v1’s rules exactly (exits top, then left, then right). The connected map needs exits on any wall, with the hallway following the door you clicked. Should Classic mode stay as close to v1 as possible there?
-- **D100.** Phase 1 reads the D100 as a D10 for room length, like v1. Keep that, or use the full 1–100 range later?

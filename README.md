@@ -58,4 +58,4 @@ Every push to `main` runs the checks in `.github/workflows/ci.yml` and, if they 
 
 ## License
 
-GNU General Public License v3.0. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
