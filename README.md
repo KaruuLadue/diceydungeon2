@@ -2,7 +2,7 @@
 
 A dungeon generator that builds a connected map as you roll. Start in an entrance room, pick an unexplored door, roll, and a hallway and new room attach to the map. Play it solo as a dungeon crawl with a journal and tracker, or switch those off and use it as a quick generator when you're running the game.
 
-**Live site:** https://karuuladue.github.io/DiceyDungeon2/ (under construction)
+**Live site:** https://karuuladue.github.io/diceydungeon2/ (under construction)
 
 The original Dicey Dungeon is still available at https://karuuladue.github.io/DiceyDungeon/.
 
@@ -15,8 +15,8 @@ Early development. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGEL
 Requires Node.js 24 or later.
 
 ```sh
-git clone https://github.com/KaruuLadue/DiceyDungeon2.git
-cd DiceyDungeon2
+git clone https://github.com/KaruuLadue/diceydungeon2.git
+cd diceydungeon2
 npm install
 npm run dev
 ```

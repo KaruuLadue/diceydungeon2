@@ -18,8 +18,8 @@ function commitHash(): string {
 
 // https://vite.dev/config/
 export default defineConfig({
-  // Served from https://karuuladue.github.io/DiceyDungeon2/
-  base: '/DiceyDungeon2/',
+  // Served from https://karuuladue.github.io/diceydungeon2/
+  base: '/diceydungeon2/',
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

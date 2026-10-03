@@ -8,7 +8,7 @@ export default defineConfig({
   retries: isCI ? 1 : 0,
   reporter: isCI ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:4173/DiceyDungeon2/',
+    baseURL: 'http://localhost:4173/diceydungeon2/',
     trace: 'retain-on-failure',
   },
   projects: [
@@ -20,7 +20,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',
-    url: 'http://localhost:4173/DiceyDungeon2/',
+    url: 'http://localhost:4173/diceydungeon2/',
     reuseExistingServer: !isCI,
     timeout: 120_000,
   },
