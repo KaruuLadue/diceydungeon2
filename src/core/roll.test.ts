@@ -167,3 +167,10 @@ describe('historyToText', () => {
     );
   });
 });
+
+describe('historyToText notes', () => {
+  it('adds notes after each roll', () => {
+    const text = historyToText([record({ D4: 2 })], (_, n) => [`Note for roll ${n}.`]);
+    expect(text).toContain('D4: 2 (D4 text)\nNote for roll 1.\n\n');
+  });
+});

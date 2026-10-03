@@ -18,7 +18,9 @@ test.afterEach(() => {
 
 test('rolls rooms with all seven dice and a drawing', async ({ page }) => {
   await expect(page).toHaveTitle('Dicey Dungeon 2');
-  await expect(page.getByText('Press Roll to generate your first room.')).toBeVisible();
+  await expect(
+    page.getByText('Press Roll to place the entrance room of a new dungeon.'),
+  ).toBeVisible();
 
   await page.getByRole('button', { name: 'Roll', exact: true }).click();
 
@@ -26,7 +28,8 @@ test('rolls rooms with all seven dice and a drawing', async ({ page }) => {
   await expect(card.getByRole('heading', { name: 'Roll 1' })).toBeVisible();
   await expect(card.locator('.result-line:not(.extra)')).toHaveCount(7);
   await expect(card.locator('.result-line').first()).toContainText(/^D4: [1-4] \(.+\)$/);
-  await expect(card.getByRole('img', { name: /^Room \d+ft wide by \d+ft long/ })).toBeVisible();
+  await expect(card.getByText('Start of a new section of the dungeon.')).toBeVisible();
+  await expect(card.getByRole('img', { name: /^Room 1: \d+ft wide by \d+ft long/ })).toBeVisible();
 });
 
 test('keeps history and numbering across reloads', async ({ page }) => {
@@ -34,10 +37,83 @@ test('keeps history and numbering across reloads', async ({ page }) => {
   await roll.click();
   await roll.click();
   await roll.click();
+  await page.getByRole('link', { name: 'Rooms (3)' }).click();
   expect(await rollTitles(page)).toEqual(['Roll 3', 'Roll 2', 'Roll 1']);
 
   await page.reload();
   expect(await rollTitles(page)).toEqual(['Roll 3', 'Roll 2', 'Roll 1']);
+});
+
+test('builds a connected map by exploring doors', async ({ page }) => {
+  const map = page.locator('.map-svg');
+  // The first room always has at least one door to explore (D6 ÷ 2, rounded up)
+  await page.getByRole('button', { name: 'Roll', exact: true }).click();
+  await expect(map.locator('[data-room]')).toHaveCount(1);
+  await expect(map.locator('.map-entrance')).toHaveCount(1); // the dungeon entrance
+
+  // Click a gold door on the map: the next roll goes through it
+  const door = map.getByRole('button', { name: /^Explore Room 1, \w+ door/ }).first();
+  const doorLabel = (await door.getAttribute('aria-label'))!.replace('Explore ', '');
+  await door.click();
+  const card = page.locator('.roll-card').first();
+  await expect(card.getByRole('heading', { name: 'Roll 2' })).toBeVisible();
+  await expect(card.getByText(`Through ${doorLabel}.`)).toBeVisible();
+  // The explored door is no longer offered
+  await expect(map.getByRole('button', { name: `Explore ${doorLabel}`, exact: true })).toHaveCount(
+    0,
+  );
+
+  // The Roll button explores the door it names
+  const hint = await page.locator('.next-door-hint').textContent();
+  const named = hint?.match(/explores (Room \d+, [^.]+)\./)?.[1];
+  if (named) {
+    await page.getByRole('button', { name: 'Roll', exact: true }).click();
+    await expect(page.locator('.roll-card').first().getByText(`Through ${named}.`)).toBeVisible();
+  }
+
+  // The dungeon is rebuilt identically after a reload (the view may be panned differently)
+  const layer = page.locator('.map-svg > g');
+  const before = await layer.innerHTML();
+  await page.reload();
+  await expect(page.locator('.map-svg [data-room]').first()).toBeVisible();
+  expect(await layer.innerHTML()).toBe(before);
+});
+
+test('map doors can be explored from the keyboard list', async ({ page }) => {
+  await page.getByRole('button', { name: 'Roll', exact: true }).click();
+  const list = page.locator('.door-list');
+  const first = list.getByRole('button').first();
+  const label = (await first.textContent())!.replace('Explore ', '');
+  await first.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.roll-card').first().getByText(`Through ${label}.`)).toBeVisible();
+});
+
+test('selecting a room on the map shows its details', async ({ page }) => {
+  const roll = page.getByRole('button', { name: 'Roll', exact: true });
+  await roll.click();
+  await roll.click();
+  await expect(page.locator('.roll-card h2')).toHaveText('Roll 2');
+  // The map follows the newest room, so fit it to make sure room 1 is on screen
+  await page.getByRole('button', { name: 'Fit' }).click();
+  await page.locator('.map-svg [data-room="1"]').click();
+  await expect(page.locator('.roll-card h2')).toHaveText('Roll 1');
+  await expect(page.locator('.map-svg .map-room.selected')).toHaveCount(1);
+});
+
+test('map zoom and fit controls work', async ({ page }) => {
+  await page.getByRole('button', { name: 'Roll', exact: true }).click();
+  const layer = page.locator('.map-svg > g');
+  const scaleOf = async () =>
+    Number((await layer.getAttribute('transform'))!.match(/scale\(([\d.]+)\)/)![1]);
+  const fitted = await scaleOf();
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  expect(await scaleOf()).toBeGreaterThan(fitted);
+  await page.getByRole('button', { name: 'Zoom out' }).click();
+  await page.getByRole('button', { name: 'Zoom out' }).click();
+  expect(await scaleOf()).toBeLessThan(fitted);
+  await page.getByRole('button', { name: 'Fit' }).click();
+  expect(await scaleOf()).toBeCloseTo(fitted, 5);
 });
 
 test('reset clears the history after confirming', async ({ page }) => {
@@ -176,7 +252,11 @@ test('table effects roll extra dice and can be switched off', async ({ page }) =
 
   await page.getByRole('link', { name: 'Back to Rolling' }).click();
   await page.getByRole('button', { name: 'Roll', exact: true }).click();
-  const extra = page.locator('.roll-card').first().locator('.result-line.extra');
+  // Only count extras from the D6: a Classic D20 effect can add more now and then
+  const extra = page
+    .locator('.roll-card')
+    .first()
+    .locator('.result-line.extra', { hasText: '(from D6)' });
   await expect(extra).toHaveCount(1);
   await expect(extra).toContainText(/^↳D8 again \(from D6\): [1-8] \(.+\)$/);
 

@@ -23,6 +23,8 @@ export interface RollRecord {
   results: Partial<Record<Die, DieResult>>;
   /** Extra rolls from table effects, in the order they were rolled */
   extra?: ExtraResult[];
+  /** Id of the map door this roll explored (absent for a starting room) */
+  door?: string;
 }
 
 export type EnabledDice = Record<Die, boolean>;
@@ -116,8 +118,14 @@ export function extraLabel(extra: ExtraResult): string {
   return `${extra.die} again (from ${extra.from})`;
 }
 
-/** Plain-text log of the roll history, in v1's export format plus extra rolls */
-export function historyToText(history: RollRecord[]): string {
+/**
+ * Plain-text log of the roll history, in v1's export format plus extra rolls.
+ * `notesFor` can add lines after each roll, such as where it went on the map.
+ */
+export function historyToText(
+  history: RollRecord[],
+  notesFor?: (record: RollRecord, roll: number) => string[],
+): string {
   let text = 'Roll History:\n\n';
   history.forEach((record, index) => {
     text += `Roll ${index + 1} (${record.timestamp}):\n`;
@@ -126,6 +134,9 @@ export function historyToText(history: RollRecord[]): string {
     }
     for (const extra of record.extra ?? []) {
       text += `${extraLabel(extra)}: ${extra.value} (${extra.description || 'No description'})\n`;
+    }
+    for (const note of notesFor?.(record, index + 1) ?? []) {
+      text += `${note}\n`;
     }
     text += '\n';
   });

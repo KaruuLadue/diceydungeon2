@@ -8,7 +8,7 @@ The original Dicey Dungeon is still available at https://karuuladue.github.io/Di
 
 ## Status
 
-Version 0.3 does everything Dicey Dungeon 1 does (rolling, room drawings, settings, roll history, export, table editing and import), and table entries can now roll other dice again. The connected map comes next. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped.
+Version 0.4 builds a connected dungeon map as you roll: click a door and the next room attaches there. It also does everything Dicey Dungeon 1 does (rolling, room drawings, settings, roll history, export, table editing and import), and table entries can roll other dice again. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped.
 
 ## Development
 
@@ -40,9 +40,10 @@ src/
   core/          Game rules and saved data. Plain TypeScript, no React or DOM
     packs/       Table packs (classic.json is v1's tables)
     roll.ts      Rolling a room, matches, text export
-    layout.ts    Room size, hallway and exits from a roll
+    layout.ts    Room size, hallway and exit count from a roll
+    dungeon.ts   The connected map: placing rooms, doors, joins and dead ends
     storage.ts   Versioned localStorage, v1 table import
-  components/    React interface: roll page, room drawing, table editor, instructions
+  components/    React interface: map, roll cards, room drawing, table editor, instructions
   lib/           Browser helpers (downloads, sound)
   assets/        Logo, background, dice icons and roll sound (from v1)
   App.tsx        Pages, app state and saving

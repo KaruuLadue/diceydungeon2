@@ -1,151 +1,83 @@
-import type { RoomLayout } from '../core/layout';
+import { roomSizeFeet, type Hallway, type PlacedRoom } from '../core/dungeon';
+import { CELL, DoorShape, EntranceMark, HallwayShape, RoomShape } from './mapShapes';
 
-const CELL = 40;
-const PAD = 40;
+const PAD = CELL * 1.5;
 const TITLE_HEIGHT = 40;
-const LEGEND_HEIGHT = 50;
-const MIN_WIDTH = 400;
-const DOOR_THICKNESS = 10;
-const DOOR_INSET = 5;
+const LEGEND_HEIGHT = 44;
+const MIN_WIDTH = 360;
 
 interface Props {
-  layout: RoomLayout;
-}
-
-/** Door bar centred on a horizontal wall line */
-function HorizontalDoor({ x, y }: { x: number; y: number }) {
-  return (
-    <rect
-      className="map-door"
-      x={x + DOOR_INSET}
-      y={y - DOOR_THICKNESS / 2}
-      width={CELL - DOOR_INSET * 2}
-      height={DOOR_THICKNESS}
-    />
-  );
-}
-
-/** Door bar centred on a vertical wall line */
-function VerticalDoor({ x, y }: { x: number; y: number }) {
-  return (
-    <rect
-      className="map-door"
-      x={x - DOOR_THICKNESS / 2}
-      y={y + DOOR_INSET}
-      width={DOOR_THICKNESS}
-      height={CELL - DOOR_INSET * 2}
-    />
-  );
-}
-
-function GridLines({ x, y, cols, rows }: { x: number; y: number; cols: number; rows: number }) {
-  const d = [
-    ...Array.from({ length: cols - 1 }, (_, i) => {
-      const lx = x + (i + 1) * CELL;
-      return `M${lx},${y}V${y + rows * CELL}`;
-    }),
-    ...Array.from({ length: rows - 1 }, (_, i) => {
-      const ly = y + (i + 1) * CELL;
-      return `M${x},${ly}H${x + cols * CELL}`;
-    }),
-  ].join('');
-  return d ? <path className="map-gridline" d={d} /> : null;
+  room: PlacedRoom;
+  hallway?: Hallway;
 }
 
 /**
- * Top-down drawing of one room: the grid, the hallway leading in from below,
- * the entrance and the extra exits. Uses v1's layout rules (see roomLayout).
+ * One room as it sits on the map: grid, the hallway that led to it, the
+ * entrance triangle and every door. Map north is up.
  */
-export function RoomMap({ layout }: Props) {
-  const { width, length, hallway, exits } = layout;
-  const gridWidth = width * CELL;
-  const svgWidth = Math.max(MIN_WIDTH, gridWidth + PAD * 2);
-  const svgHeight = TITLE_HEIGHT + PAD + (length + hallway) * CELL + PAD + LEGEND_HEIGHT;
+export function RoomMap({ room, hallway }: Props) {
+  const cells = [room.rect, ...(hallway?.cells.map((c) => ({ x: c.x, y: c.y, w: 1, h: 1 })) ?? [])];
+  const minX = Math.min(...cells.map((r) => r.x));
+  const minY = Math.min(...cells.map((r) => r.y));
+  const maxX = Math.max(...cells.map((r) => r.x + r.w));
+  const maxY = Math.max(...cells.map((r) => r.y + r.h));
 
-  const gridX = (svgWidth - gridWidth) / 2;
-  const gridY = TITLE_HEIGHT + PAD;
-  const roomBottom = gridY + length * CELL;
-  const entranceX = gridX + Math.floor(width / 2) * CELL;
-  const middleRowY = gridY + Math.floor(length / 2) * CELL;
+  const contentWidth = (maxX - minX) * CELL + PAD * 2;
+  const width = Math.max(MIN_WIDTH, contentWidth);
+  const height = TITLE_HEIGHT + (maxY - minY) * CELL + PAD * 2 + LEGEND_HEIGHT;
+  // Shift so the content is centred horizontally below the title
+  const offsetX = (width - (maxX - minX) * CELL) / 2 - minX * CELL;
+  const offsetY = TITLE_HEIGHT + PAD - minY * CELL;
 
-  const exitWord = exits.length === 1 ? 'exit' : 'exits';
+  const { width: widthFt, length: lengthFt } = roomSizeFeet(room);
+  const exits = room.exits.length;
   const description =
-    `Room ${width * 5}ft wide by ${length * 5}ft long with ${exits.length} extra ${exitWord}` +
-    (hallway === 0
-      ? ', entered directly through a door.'
-      : `, reached by a ${hallway}-square hallway.`);
-
-  // Entrance triangle sits in the room's bottom cell above the entrance door
-  const triangleSize = CELL * 0.5;
-  const triangleCx = entranceX + CELL / 2;
-  const triangleBase = roomBottom - CELL * 0.2;
-  const triangle = `${triangleCx},${triangleBase - triangleSize * 0.87} ${triangleCx - triangleSize / 2},${triangleBase} ${triangleCx + triangleSize / 2},${triangleBase}`;
-
-  const legendY = svgHeight - LEGEND_HEIGHT / 2;
-  const legendX = svgWidth / 2 - 95;
+    `Room ${room.roll}: ${widthFt}ft wide by ${lengthFt}ft long with ` +
+    `${exits} other ${exits === 1 ? 'door' : 'doors'}.`;
+  const legendX = width / 2 - 135;
+  const legendY = height - LEGEND_HEIGHT / 2;
 
   return (
     <svg
       className="room-map"
-      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-      width={svgWidth}
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
       role="img"
       aria-label={description}
     >
-      <rect className="map-background" width={svgWidth} height={svgHeight} rx={6} />
-
-      <text className="map-title" x={svgWidth / 2} y={TITLE_HEIGHT}>
-        Room Size: {width * 5}ft x {length * 5}ft
+      <rect className="map-background" width={width} height={height} rx={6} />
+      <text className="map-title" x={width / 2} y={TITLE_HEIGHT * 0.7}>
+        Room Size: {widthFt}ft x {lengthFt}ft
       </text>
-
-      {/* Room */}
-      <rect className="map-floor" x={gridX} y={gridY} width={gridWidth} height={length * CELL} />
-      <GridLines x={gridX} y={gridY} cols={width} rows={length} />
-      <rect className="map-wall" x={gridX} y={gridY} width={gridWidth} height={length * CELL} />
-
-      {/* Hallway */}
-      {hallway > 0 && (
-        <>
-          <rect
-            className="map-floor"
-            x={entranceX}
-            y={roomBottom}
-            width={CELL}
-            height={hallway * CELL}
-          />
-          <GridLines x={entranceX} y={roomBottom} cols={1} rows={hallway} />
-          <rect
-            className="map-wall"
-            x={entranceX}
-            y={roomBottom}
-            width={CELL}
-            height={hallway * CELL}
-          />
-          <HorizontalDoor x={entranceX} y={roomBottom + hallway * CELL} />
-        </>
-      )}
-      <HorizontalDoor x={entranceX} y={roomBottom} />
-      <polygon className="map-entrance" points={triangle} />
-
-      {/* Extra exits */}
-      {exits.map((wall) => {
-        if (wall === 'top') return <HorizontalDoor key={wall} x={entranceX} y={gridY} />;
-        if (wall === 'left') return <VerticalDoor key={wall} x={gridX} y={middleRowY} />;
-        return <VerticalDoor key={wall} x={gridX + gridWidth} y={middleRowY} />;
-      })}
-
-      {/* Legend */}
+      <g transform={`translate(${offsetX} ${offsetY})`}>
+        {hallway && <HallwayShape hallway={hallway} />}
+        <RoomShape room={room} label={false} />
+        <EntranceMark room={room} />
+        {[room.entrance, ...room.exits].map((door) => (
+          <DoorShape key={door.id} room={room} door={door} />
+        ))}
+      </g>
       <g className="map-legend" aria-hidden="true">
         <polygon
           className="map-entrance"
-          points={`${legendX + 8},${legendY - 8} ${legendX},${legendY + 6} ${legendX + 16},${legendY + 6}`}
+          points={`${legendX + 7},${legendY - 7} ${legendX},${legendY + 6} ${legendX + 14},${legendY + 6}`}
         />
-        <text x={legendX + 26} y={legendY}>
+        <text x={legendX + 22} y={legendY}>
           Entrance
         </text>
-        <rect className="map-door" x={legendX + 125} y={legendY - 4} width={22} height={8} />
-        <text x={legendX + 155} y={legendY}>
-          Exit
+        <rect className="map-door" x={legendX + 110} y={legendY - 4} width={20} height={7} />
+        <text x={legendX + 136} y={legendY}>
+          Door
+        </text>
+        <rect
+          className="map-door unexplored"
+          x={legendX + 190}
+          y={legendY - 4}
+          width={20}
+          height={7}
+        />
+        <text x={legendX + 216} y={legendY}>
+          New
         </text>
       </g>
     </svg>

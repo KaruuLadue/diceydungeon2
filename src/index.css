@@ -298,6 +298,202 @@ a:focus-visible {
   dominant-baseline: middle;
 }
 
+.map-hallway .map-floor {
+  fill: #151515;
+}
+
+.map-hallway .map-wall {
+  stroke: #9c8430;
+  stroke-width: 2;
+}
+
+.map-door.unexplored {
+  fill: var(--gold);
+}
+
+.map-dead-end {
+  fill: none;
+  stroke: var(--danger);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.map-room-label {
+  fill: rgba(212, 175, 55, 0.55);
+  font-family: var(--font-display);
+  font-size: 16px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+.map-room.selected .map-floor {
+  fill: #2c2716;
+}
+
+.map-room.selected .map-wall {
+  stroke: #ffe58a;
+  stroke-width: 4;
+}
+
+.map-room-hit {
+  cursor: pointer;
+}
+
+.map-door-button {
+  cursor: pointer;
+}
+
+.map-door-target {
+  fill: transparent;
+}
+
+.map-door-halo {
+  fill: rgba(212, 175, 55, 0.25);
+  stroke: var(--gold);
+  stroke-width: 1.5;
+}
+
+.map-door-button.next .map-door-halo {
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.map-door-button:hover .map-door-halo,
+.map-door-button:focus-visible .map-door-halo {
+  fill: rgba(212, 175, 55, 0.6);
+}
+
+.map-door-button:focus-visible {
+  outline: none;
+}
+
+.map-door-button:focus-visible .map-door-target {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+
+@keyframes pulse {
+  50% {
+    fill: rgba(212, 175, 55, 0.6);
+  }
+}
+
+/* Map page */
+
+.view-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--gold);
+}
+
+.view-tabs a {
+  padding: 8px 20px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--gold);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  color: var(--muted);
+  font-family: var(--font-display);
+  text-decoration: none;
+}
+
+.view-tabs a[aria-current='page'] {
+  background: var(--gold);
+  color: #000;
+}
+
+.next-door-hint {
+  margin: 10px 0;
+  padding: 8px 12px;
+  background: var(--panel);
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+.map-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.dungeon-map {
+  position: relative;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #121212;
+}
+
+.map-viewport {
+  height: min(65vh, 560px);
+  touch-action: none;
+  cursor: grab;
+}
+
+.map-viewport:active {
+  cursor: grabbing;
+}
+
+.map-svg {
+  display: block;
+  font-family: Arial, sans-serif;
+  user-select: none;
+}
+
+.map-toolbar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+}
+
+.map-toolbar button {
+  min-width: 36px;
+  padding: 4px 10px;
+  font-size: 16px;
+}
+
+.map-side .roll-card {
+  margin-top: 0;
+}
+
+.door-list h2 {
+  margin: 0 0 8px;
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: normal;
+}
+
+.door-list ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.door-list button {
+  padding: 4px 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.placement-notes {
+  margin: 8px 0 0;
+  padding: 0 0 0 4px;
+  list-style: none;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.placement-notes li::before {
+  content: '⌖ ';
+  color: var(--gold);
+}
+
 /* Table editor */
 
 .unsaved {
@@ -438,6 +634,12 @@ a:focus-visible {
   font-weight: normal;
 }
 
+.prose h3 {
+  margin: 16px 0 4px;
+  color: var(--gold);
+  font-size: 18px;
+}
+
 .prose li {
   margin: 4px 0;
 }
@@ -505,5 +707,6 @@ a:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+    animation: none !important;
   }
 }

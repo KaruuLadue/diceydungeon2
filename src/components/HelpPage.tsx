@@ -19,22 +19,23 @@ export function HelpPage() {
           drawing of the room. Use it to prepare a dungeon quickly when you're running the game, or
           to explore a dungeon on your own.
         </p>
-        <p>
-          Dicey Dungeon 2 is being rebuilt so that rooms connect into a map you explore door by
-          door. For now it works like the original.
-        </p>
+        <p>In Dicey Dungeon 2 the rooms connect into a map that you explore door by door.</p>
       </section>
 
       <section className="panel prose">
         <h2>How to play</h2>
         <ol>
           <li>
-            Press <strong>Roll</strong>. Every active die is rolled and looked up in its table.
+            Press <strong>Roll</strong> to place the entrance room. Every active die is rolled and
+            looked up in its table.
           </li>
           <li>
             Walk the hallway, enter the room and resolve the encounter, room type and modifier.
           </li>
-          <li>Pick an exit and roll again for the next room.</li>
+          <li>
+            Click a gold door on the map to explore it: the next room is rolled and attached there.
+            Or press <strong>Roll</strong> to explore the door it names.
+          </li>
           <li>
             Use <strong>Export Log</strong> to download your roll history as a text file, and{' '}
             <strong>Reset</strong> to start a new dungeon.
@@ -100,12 +101,39 @@ export function HelpPage() {
       </section>
 
       <section className="panel prose">
-        <h2>Reading the room drawing</h2>
+        <h2>The map</h2>
         <ul>
-          <li>Each grid square is 5ft × 5ft. The room size is shown above the drawing.</li>
-          <li>The hallway leads into the room from below. A D4 of 1 means there's no hallway.</li>
-          <li>The gold triangle marks where you enter the room.</li>
-          <li>White bars are doors: one at each end of the hallway, plus the extra exits.</li>
+          <li>Each grid square is 5ft × 5ft, and north is up. Rooms are numbered by roll.</li>
+          <li>
+            Drag to move around. Zoom with the mouse wheel or the <strong>+</strong> and{' '}
+            <strong>−</strong> buttons, and press <strong>Fit</strong> to see the whole dungeon.
+          </li>
+          <li>
+            White bars are doors you've been through. Gold bars with a circle are unexplored doors;
+            the pulsing one is where <strong>Roll</strong> goes next. You can also explore doors
+            from the list beside the map.
+          </li>
+          <li>Click a room to see its rolls. The Rooms tab lists every roll.</li>
+          <li>The gold triangle marks where you enter a room, and the dungeon's entrance.</li>
+        </ul>
+        <h3>How rooms are placed</h3>
+        <ul>
+          <li>
+            The hallway runs straight out of the door for the D4's length (none on a 1), and the new
+            room is centred on its end. Extra exits go on random walls.
+          </li>
+          <li>
+            Rooms never overlap. If the rolled room doesn't fit, it's shifted sideways or made
+            smaller, and its card says so.
+          </li>
+          <li>
+            If a hallway runs into another room, it leads into that room instead. If it hits another
+            hallway or no room fits at all, the passage collapses: a red ✕ marks the dead end.
+          </li>
+          <li>
+            When every door is explored, <strong>Roll</strong> starts a new section of the dungeon
+            beside the map.
+          </li>
         </ul>
       </section>
     </>

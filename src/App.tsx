@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import logo from './assets/logo.png';
 import { HelpPage } from './components/HelpPage';
-import { RollPage } from './components/RollPage';
+import { RollPage, type RollView } from './components/RollPage';
 import { TablesPage } from './components/TablesPage';
 import { Toast, type Notify, type ToastMessage } from './components/Toast';
+import { buildDungeon, nextDoor, placementNotes, type Door } from './core/dungeon';
 import { historyToText, rollRoom, type RollRecord } from './core/roll';
 import { randomSeed } from './core/rng';
 import type { Settings } from './core/settings';
@@ -21,12 +22,13 @@ import type { TableSet } from './core/tables';
 import { downloadFile } from './lib/download';
 import { playRollSound } from './lib/sound';
 
-type Route = 'roll' | 'tables' | 'help';
+type Route = RollView | 'tables' | 'help';
 
 function routeFromHash(): Route {
   if (location.hash === '#/tables') return 'tables';
   if (location.hash === '#/help') return 'help';
-  return 'roll';
+  if (location.hash === '#/rooms') return 'rooms';
+  return 'map';
 }
 
 function useRoute(): Route {
@@ -49,6 +51,8 @@ export default function App() {
   const [history, setHistory] = useState(() => loadHistory(store));
   const [tables, setTables] = useState(() => loadTables(store));
   const v1Tables = useMemo(() => loadV1Tables(store), [store]);
+  // The map is rebuilt from the roll history, so it never needs saving separately
+  const dungeon = useMemo(() => buildDungeon(history), [history]);
 
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
@@ -75,15 +79,22 @@ export default function App() {
     if (!saveTables(store, next)) saveFailed();
   };
 
-  const roll = () => {
+  const roll = (door: Door | undefined = nextDoor(dungeon)) => {
     if (settings.soundEnabled) playRollSound();
-    const record = rollRoom(tables, settings.enabledDice, randomSeed(), {
-      applyEffects: settings.applyEffects,
-    });
+    const record: RollRecord = {
+      ...rollRoom(tables, settings.enabledDice, randomSeed(), {
+        applyEffects: settings.applyEffects,
+      }),
+      ...(door && { door: door.id }),
+    };
     updateHistory([...history, record]);
   };
 
-  const exportLog = () => downloadFile('roll_history.txt', historyToText(history));
+  const exportLog = () =>
+    downloadFile(
+      'roll_history.txt',
+      historyToText(history, (record, n) => placementNotes(dungeon, record, n)),
+    );
 
   return (
     <div className="app">
@@ -95,8 +106,10 @@ export default function App() {
       </header>
 
       <main>
-        {route === 'roll' && (
+        {(route === 'map' || route === 'rooms') && (
           <RollPage
+            view={route}
+            dungeon={dungeon}
             settings={settings}
             history={history}
             onSettingsChange={updateSettings}

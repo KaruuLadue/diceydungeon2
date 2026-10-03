@@ -1,4 +1,4 @@
-import { roomLayout } from '../core/layout';
+import { findRoom, placementNotes, type Dungeon } from '../core/dungeon';
 import { extraLabel, matchingValues, orderedResults, type RollRecord } from '../core/roll';
 import { DieIcon } from './DieIcon';
 import { RoomMap } from './RoomMap';
@@ -6,16 +6,30 @@ import { RoomMap } from './RoomMap';
 interface Props {
   record: RollRecord;
   number: number;
+  dungeon: Dungeon;
   highlightMatches: boolean;
   showRoomMap: boolean;
+  selected?: boolean;
 }
 
-export function RollCard({ record, number, highlightMatches, showRoomMap }: Props) {
+export function RollCard({
+  record,
+  number,
+  dungeon,
+  highlightMatches,
+  showRoomMap,
+  selected,
+}: Props) {
   const matches = highlightMatches ? matchingValues(record) : new Set<number>();
   const results = orderedResults(record);
+  const room = findRoom(dungeon, number);
+  const hallway = dungeon.hallways.find((h) => h.roll === number);
 
   return (
-    <article className="roll-card" aria-labelledby={`roll-${record.id}`}>
+    <article
+      className={selected ? 'roll-card selected' : 'roll-card'}
+      aria-labelledby={`roll-${record.id}`}
+    >
       <h2 id={`roll-${record.id}`} className="roll-title">
         Roll {number}
       </h2>
@@ -48,7 +62,12 @@ export function RollCard({ record, number, highlightMatches, showRoomMap }: Prop
           ))}
         </ul>
       )}
-      {showRoomMap && <RoomMap layout={roomLayout(record)} />}
+      <ul className="placement-notes">
+        {placementNotes(dungeon, record, number).map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
+      {showRoomMap && room && <RoomMap room={room} hallway={hallway} />}
     </article>
   );
 }

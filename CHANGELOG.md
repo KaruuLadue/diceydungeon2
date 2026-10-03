@@ -4,6 +4,28 @@ All notable changes to Dicey Dungeon 2 are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-10-03
+
+The connected dungeon map.
+
+### Added
+
+- Map tab: each roll attaches a hallway and room to the door it explored, building a dungeon you can drag, zoom and fit to the screen
+- Click a gold door on the map, or use the list beside it, to explore that door; Roll explores the newest room's first unexplored door and says which
+- Extra exits go on random walls
+- Rooms never overlap: a room that doesn't fit is shifted along the wall or made smaller (largest size that fits first), and its card says so
+- Hallways that run into a room lead into it (making loops); hallways that hit another hallway, or have no space for a room, collapse into a dead end
+- When every door is explored, Roll starts a new section of the dungeon beside the map
+- Clicking a room on the map shows its rolls; the Rooms tab lists every roll
+- Room cards show the room as placed on the map and which door the roll came through
+- Export Log includes where each roll went on the map
+- Instructions for the map
+
+### Changed
+
+- The map is rebuilt from the roll history (each roll records its door), so it survives reloads and older histories still load
+- Room card drawings use the map's orientation (north up) instead of always putting the entrance at the bottom
+
 ## [0.3.0] - 2026-10-03
 
 Table effects: entries that say "roll again" now do.

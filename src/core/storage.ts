@@ -76,7 +76,8 @@ function isRollRecord(value: unknown): value is RollRecord {
       record.extra.every((extra: Record<string, unknown> | null) => {
         return isDieResult(extra) && isDie(extra?.die) && isDie(extra?.from);
       }));
-  return validResults && validExtra;
+  const validDoor = record.door === undefined || typeof record.door === 'string';
+  return validResults && validExtra && validDoor;
 }
 
 const isDie = (value: unknown) => (DICE as readonly unknown[]).includes(value);
