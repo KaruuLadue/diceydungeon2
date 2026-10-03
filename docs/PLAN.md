@@ -36,19 +36,22 @@ You start with an entrance room. Each exit is an unexplored door. Click a door, 
 
 Each phase ends with something deployed.
 
-| #   | Phase                    | Result                                                                                                   |
-| --- | ------------------------ | -------------------------------------------------------------------------------------------------------- |
-| 0   | Setup                    | Repo, tooling, CI, Pages deploy, placeholder page ✅                                                     |
-| 1   | Game rules               | Seeded dice, Classic pack with effects, single-room generation, all tested (debug page only)             |
-| 2   | Connected map (playable) | Click a door, a room attaches, pan and zoom, room details                                                |
-| 3   | Saving and sharing       | Autosave, multiple dungeons, undo, export and import, share links by seed                                |
-| 4   | Tables and packs         | Table editor with effects, 2–3 themed packs (crypt, sewer, derelict ship), v1 table import               |
-| 5   | Solo layer               | Auto-journal and notes, visited and cleared states, optional tracker (HP, light, rations, keys), GM mode |
-| 6   | Polish                   | Dice animation and sound, offline install, mobile layout, accessibility, Markdown and PNG export         |
+| #   | Phase                    | Result                                                                                                                     |
+| --- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| 0   | Setup                    | Repo, tooling, CI, Pages deploy, placeholder page ✅                                                                       |
+| 1   | Match v1                 | Everything v1 does, with v1's rules: tables, rolling, room drawings, settings, history, export, table editor, v1 import ✅ |
+| 2   | Table effects            | Entries that trigger effects ("roll again", extra exits), seeded per-roll reproducibility exposed in the interface         |
+| 3   | Connected map (playable) | Click a door, a room attaches, pan and zoom, room details                                                                  |
+| 4   | Saving and sharing       | Multiple dungeons, undo, export and import of whole dungeons, share links by seed                                          |
+| 5   | Packs                    | 2–3 themed packs (crypt, sewer, derelict ship), choosing a pack per dungeon                                                |
+| 6   | Solo layer               | Auto-journal and notes, visited and cleared states, optional tracker (HP, light, rations, keys), GM mode                   |
+| 7   | Polish                   | Dice animation, offline install, accessibility pass, Markdown and PNG export                                               |
+
+Phase 1 was moved ahead of the connected map on 2026-10-03 so v2 reaches feature parity with v1 before adding new features.
 
 Later ideas, not planned yet: stairs to multiple levels, non-rectangular rooms, furniture and hazard icons.
 
 ## Open questions
 
-- **Classic rules.** The connected map changes what some dice mean compared with v1: exits get a random wall instead of always top, then left, then right, and the hallway follows the exit you clicked. Should Classic mode stay as close to v1 as possible?
-- **D100.** v1 reads the D100 as a D10 for room length. Keep that, or use the full 1–100 range for something else?
+- **Classic rules for the map.** Phase 1 keeps v1’s rules exactly (exits top, then left, then right). The connected map needs exits on any wall, with the hallway following the door you clicked. Should Classic mode stay as close to v1 as possible there?
+- **D100.** Phase 1 reads the D100 as a D10 for room length, like v1. Keep that, or use the full 1–100 range later?

@@ -2,13 +2,13 @@
 
 A dungeon generator that builds a connected map as you roll. Start in an entrance room, pick an unexplored door, roll, and a hallway and new room attach to the map. Play it solo as a dungeon crawl with a journal and tracker, or switch those off and use it as a quick generator when you're running the game.
 
-**Live site:** https://karuuladue.github.io/diceydungeon2/ (under construction)
+**Live site:** https://karuuladue.github.io/diceydungeon2/
 
 The original Dicey Dungeon is still available at https://karuuladue.github.io/DiceyDungeon/.
 
 ## Status
 
-Early development. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped.
+Version 0.2 does everything Dicey Dungeon 1 does (rolling, room drawings, settings, roll history, export, table editing and import). The connected map comes next. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped.
 
 ## Development
 
@@ -37,14 +37,20 @@ npm run dev
 
 ```
 src/
-  core/      Game rules: seeded random numbers, dice. Plain TypeScript, no React or DOM
-  assets/    Logo, background and dice icons (from v1)
-  App.tsx    Interface
-e2e/         Browser tests
-docs/        Plan and design notes
+  core/          Game rules and saved data. Plain TypeScript, no React or DOM
+    packs/       Table packs (classic.json is v1's tables)
+    roll.ts      Rolling a room, matches, text export
+    layout.ts    Room size, hallway and exits from a roll
+    storage.ts   Versioned localStorage, v1 table import
+  components/    React interface: roll page, room drawing, table editor, instructions
+  lib/           Browser helpers (downloads, sound)
+  assets/        Logo, background, dice icons and roll sound (from v1)
+  App.tsx        Pages, app state and saving
+e2e/             Browser tests
+docs/            Plan and design notes
 ```
 
-Everything random goes through the seeded generator in `src/core/rng.ts`, so the same seed always produces the same dungeon.
+Everything random goes through the seeded generator in `src/core/rng.ts`, and each roll stores its seed, so any roll can be reproduced exactly.
 
 ## Deployment
 
