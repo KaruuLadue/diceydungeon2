@@ -8,7 +8,7 @@ The original Dicey Dungeon is still available at https://karuuladue.github.io/Di
 
 ## Status
 
-Version 0.4 builds a connected dungeon map as you roll: click a door and the next room attaches there. It also does everything Dicey Dungeon 1 does (rolling, room drawings, settings, roll history, export, table editing and import), and table entries can roll other dice again. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped.
+Version 0.5 builds a connected dungeon map as you roll: click a door and the next room attaches there, turned or resized to fit, with every door leading somewhere. It also does everything Dicey Dungeon 1 does (rolling, room drawings, settings, roll history, export, table editing and import), and table entries can roll other dice again. See [docs/PLAN.md](docs/PLAN.md) for the roadmap and [CHANGELOG.md](CHANGELOG.md) for what has shipped.
 
 ## Development
 

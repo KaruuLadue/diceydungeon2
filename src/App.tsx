@@ -4,7 +4,14 @@ import { HelpPage } from './components/HelpPage';
 import { RollPage, type RollView } from './components/RollPage';
 import { TablesPage } from './components/TablesPage';
 import { Toast, type Notify, type ToastMessage } from './components/Toast';
-import { buildDungeon, nextDoor, placementNotes, type Door } from './core/dungeon';
+import {
+  buildDungeon,
+  emptyDungeon,
+  extendDungeon,
+  nextDoor,
+  placementNotes,
+  type Door,
+} from './core/dungeon';
 import { historyToText, rollRoom, type RollRecord } from './core/roll';
 import { randomSeed } from './core/rng';
 import type { Settings } from './core/settings';
@@ -51,8 +58,9 @@ export default function App() {
   const [history, setHistory] = useState(() => loadHistory(store));
   const [tables, setTables] = useState(() => loadTables(store));
   const v1Tables = useMemo(() => loadV1Tables(store), [store]);
-  // The map is rebuilt from the roll history, so it never needs saving separately
-  const dungeon = useMemo(() => buildDungeon(history), [history]);
+  // The map is rebuilt from the roll history on load, then extended roll by roll,
+  // so it never needs saving separately
+  const [dungeon, setDungeon] = useState(() => buildDungeon(history));
 
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const toastTimer = useRef<number | undefined>(undefined);
@@ -87,7 +95,14 @@ export default function App() {
       }),
       ...(door && { door: door.id }),
     };
-    updateHistory([...history, record]);
+    const next = [...history, record];
+    setDungeon(extendDungeon(dungeon, record, next.length));
+    updateHistory(next);
+  };
+
+  const reset = () => {
+    setDungeon(emptyDungeon());
+    updateHistory([]);
   };
 
   const exportLog = () =>
@@ -114,7 +129,7 @@ export default function App() {
             history={history}
             onSettingsChange={updateSettings}
             onRoll={roll}
-            onReset={() => updateHistory([])}
+            onReset={reset}
             onExport={exportLog}
           />
         )}

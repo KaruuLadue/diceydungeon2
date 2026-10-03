@@ -102,7 +102,7 @@ export function RollPage({
           <p className="next-door-hint">
             {next ? (
               <>
-                <strong>Roll</strong> explores {describeDoor(dungeon, next)}.{' '}
+                <strong>Roll</strong> explores {describeDoor(next)}.{' '}
                 {view === 'map' && 'Click any gold door to explore it instead.'}
               </>
             ) : (
@@ -130,7 +130,7 @@ export function RollPage({
                       {doors.map((door) => (
                         <li key={door.id}>
                           <button type="button" onClick={() => onRoll(door)}>
-                            Explore {describeDoor(dungeon, door)}
+                            Explore {describeDoor(door)}
                           </button>
                         </li>
                       ))}

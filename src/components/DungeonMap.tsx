@@ -206,7 +206,7 @@ export function DungeonMap({ dungeon, selectedRoll, nextDoorId, onSelectRoom, on
                     door={door}
                     isNext={door.id === nextDoorId}
                     onExplore={onExplore}
-                    name={describeDoor(dungeon, door)}
+                    name={describeDoor(door)}
                   />
                 ))}
               </g>

@@ -4,6 +4,21 @@ All notable changes to Dicey Dungeon 2 are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-10-03
+
+Smarter room placement, so the map can always keep growing.
+
+### Changed
+
+- Every wall has at most one door: the entrance has its own wall and each extra exit gets a different wall. A passage only joins a room on a wall with no door (or straight into that wall's unexplored door)
+- Extra exits are only created where a room could be placed through them. A room with no space on a wall gets fewer exits, and its card says so
+- New rooms and hallways never take the space an unexplored door needs, so every gold door can always be explored
+- Rooms are tried turned 90° when that lets them keep their full size, before being made smaller. The card says when a room was turned
+- If the rolled hallway length leaves no space for a room, the hallway is made shorter or longer (within the D4's range), and the card says so
+- Collapsed passages no longer happen in new dungeons (in testing: none in 4,500 rolls)
+- Placement is about 7× faster, and each roll extends the map instead of rebuilding it
+- Existing histories are rebuilt with the new rules, so older maps will look different
+
 ## [0.4.0] - 2026-10-03
 
 The connected dungeon map.

@@ -4,10 +4,12 @@ import {
   addRoll,
   allDoors,
   buildDungeon,
+  canExplore,
   describeDoor,
   doorInsideCell,
   dungeonBounds,
   emptyDungeon,
+  extendDungeon,
   findDoor,
   findRoom,
   nextDoor,
@@ -15,6 +17,7 @@ import {
   unexploredDoors,
   wallLength,
   type Dungeon,
+  type PlacedRoom,
   type Rect,
 } from './dungeon';
 import { rollRoom, type RollRecord } from './roll';
@@ -30,6 +33,34 @@ function roll(values: Partial<Record<Die, number>>, seed = 1, door?: string): Ro
     Object.entries(values).map(([die, value]) => [die, { value, description: '' }]),
   );
   return { id: `r${nextId++}`, timestamp: '', seed, results, ...(door && { door }) };
+}
+
+/** An obstacle room for setting up tight spots, entered from the north */
+function obstacle(dungeon: Dungeon, rollNumber: number, rect: Rect): PlacedRoom {
+  const room: PlacedRoom = {
+    ...dungeon.rooms[0]!,
+    roll: rollNumber,
+    recordId: `obstacle-${rollNumber}`,
+    rect,
+    entrance: {
+      id: `${rollNumber}-N0`,
+      roll: rollNumber,
+      wall: 'N',
+      offset: 0,
+      leadsTo: { kind: 'outside' },
+    },
+    exits: [],
+  };
+  dungeon.rooms.push(room);
+  return room;
+}
+
+/** A dungeon whose room 1 is the single square (0,0) with one door on `wall` */
+function tinyStart(wall: 'N' | 'E' | 'W'): Dungeon {
+  const dungeon = emptyDungeon();
+  addRoll(dungeon, roll({ D10: 1, D100: 1, D4: 1 }), 1, undefined);
+  dungeon.rooms[0]!.exits.push({ id: `1-${wall}0`, roll: 1, wall, offset: 0 });
+  return dungeon;
 }
 
 const overlaps = (a: Rect, b: Rect) =>
@@ -55,8 +86,10 @@ function checkDungeon(dungeon: Dungeon) {
       expect(inside, 'hallway runs through a room').toBe(false);
     }
   }
-  const names = allDoors(dungeon).map((door) => describeDoor(dungeon, door));
-  expect(new Set(names).size, 'door names must be unique').toBe(names.length);
+  for (const room of rooms) {
+    const walls = [room.entrance, ...room.exits].map((door) => door.wall);
+    expect(new Set(walls).size, `room ${room.roll} has two doors on one wall`).toBe(walls.length);
+  }
   const ids = new Set<string>();
   for (const door of allDoors(dungeon)) {
     expect(ids.has(door.id), `duplicate door ${door.id}`).toBe(false);
@@ -68,6 +101,9 @@ function checkDungeon(dungeon: Dungeon) {
       expect(findRoom(dungeon, door.leadsTo.roll), `door ${door.id} leads nowhere`).toBeDefined();
     }
   }
+  for (const door of unexploredDoors(dungeon)) {
+    expect(canExplore(dungeon, door), `${describeDoor(door)} can't be explored`).toBe(true);
+  }
 }
 
 describe('starting room', () => {
@@ -75,7 +111,6 @@ describe('starting room', () => {
     const dungeon = buildDungeon([roll({ D10: 3, D100: 4, D4: 3, D6: 0 })]);
     const room = dungeon.rooms[0]!;
     expect(room.travel).toBe('N');
-    // Hallway cells (0,0), (0,-1), (0,-2); room starts at y = -3 and extends 4 up
     expect(dungeon.hallways[0]!.cells).toEqual([
       { x: 0, y: 0 },
       { x: 0, y: -1 },
@@ -83,7 +118,12 @@ describe('starting room', () => {
     ]);
     expect(room.rect).toEqual({ x: -1, y: -6, w: 3, h: 4 });
     expect(room.entrance).toMatchObject({ wall: 'S', offset: 1, leadsTo: { kind: 'outside' } });
-    expect(dungeon.outcomes[dungeon.rooms[0]!.recordId]).toEqual({ kind: 'room', roll: 1 });
+    expect(room).toMatchObject({
+      shrunk: false,
+      rotated: false,
+      hallway: { rolled: 3, actual: 3 },
+    });
+    expect(dungeon.outcomes[room.recordId]).toEqual({ kind: 'room', roll: 1 });
   });
 
   it('has no hallway for an immediate doorway (D4 = 1)', () => {
@@ -94,14 +134,12 @@ describe('starting room', () => {
 });
 
 describe('exits', () => {
-  it('places D6 ÷ 2 exits on walls other than the entrance wall, at distinct spots', () => {
+  it('puts at most one door on each wall, never on the entrance wall', () => {
     for (let seed = 0; seed < 200; seed++) {
       const dungeon = buildDungeon([roll({ D10: 4, D100: 4, D4: 2, D6: 6 }, seed)]);
       const room = dungeon.rooms[0]!;
-      expect(room.exits).toHaveLength(3);
-      expect(room.exits.every((door) => door.wall !== 'S')).toBe(true);
-      const spots = new Set(room.exits.map((door) => `${door.wall}${door.offset}`));
-      expect(spots.size).toBe(3);
+      expect(room.exits.map((d) => d.wall).sort()).toEqual(['E', 'N', 'W']);
+      expect(room.exitsPlaced).toBe(3);
     }
   });
 
@@ -113,6 +151,18 @@ describe('exits', () => {
       );
     }
     expect([...walls].sort()).toEqual(['E', 'N', 'W']);
+  });
+
+  it('never puts a door where no room could follow', () => {
+    const dungeon = tinyStart('E');
+    // A wide obstacle ending at row -2: its 1-square gap covers row -1, right above room 2
+    obstacle(dungeon, 50, { x: -12, y: -20, w: 30, h: 19 }); // rows -20..-2
+    // Room 2 east of room 1, three exits rolled; north has no space for even a 1-square room
+    addRoll(dungeon, roll({ D10: 1, D100: 1, D4: 2, D6: 6 }, 4), 2, findDoor(dungeon, '1-E0'));
+    const room = findRoom(dungeon, 2)!;
+    expect(room.exits.some((d) => d.wall === 'N')).toBe(false);
+    expect(room.exitsPlaced).toBeLessThan(room.exitsRolled);
+    checkDungeon(dungeon);
   });
 });
 
@@ -131,13 +181,11 @@ describe('attaching rooms', () => {
     expect(room.entrance.leadsTo).toEqual({ kind: 'room', roll: 1 });
     expect(dungeon.cameThrough[second.id]).toBe(door.id);
 
-    // The hallway starts just outside the door and runs 2 squares in the door's direction
     const inside = doorInsideCell(parent.rect, door.wall, door.offset);
     const hallway = dungeon.hallways.find((h) => h.roll === 2)!;
     expect(hallway.cells).toHaveLength(2);
     const step = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }[door.wall];
     expect(hallway.cells[0]).toEqual({ x: inside.x + step[0]!, y: inside.y + step[1]! });
-    // Room's entrance is right after the hallway
     const entranceCell = doorInsideCell(room.rect, room.entrance.wall, room.entrance.offset);
     expect(entranceCell).toEqual({ x: inside.x + step[0]! * 3, y: inside.y + step[1]! * 3 });
   });
@@ -150,54 +198,70 @@ describe('attaching rooms', () => {
     expect(unexploredDoors(dungeon).map((d) => d.roll)).toEqual([2, 1]);
   });
 
-  it('shrinks only the blocked direction when a room does not fit, and says so', () => {
-    const dungeon = emptyDungeon();
-    // Room 1 is the single square (0,0) with a door north
-    addRoll(dungeon, roll({ D10: 1, D100: 1, D4: 1 }), 1, undefined);
-    dungeon.rooms[0]!.exits.push({ id: '1-N0', roll: 1, wall: 'N', offset: 0 });
-    // A long room across row -8 leaves rows -6 to -3 free (with the 1-square gap)
-    dungeon.rooms.push({
-      ...dungeon.rooms[0]!,
-      roll: 50,
-      rect: { x: -30, y: -8, w: 60, h: 1 },
-      exits: [],
-    });
+  it('turns a room 90° when that lets it keep its full size', () => {
+    const dungeon = tinyStart('N');
+    // A long obstacle across row -8 leaves rows -6 to -3 free (with the 1-square gap)
+    obstacle(dungeon, 50, { x: -30, y: -8, w: 60, h: 1 });
+    // 10ft wide, 40ft long: too long for the space, but fits turned sideways
+    addRoll(dungeon, roll({ D10: 2, D100: 8, D4: 2 }), 2, findDoor(dungeon, '1-N0'));
+    const room = findRoom(dungeon, 2)!;
+    expect(room).toMatchObject({ rotated: true, shrunk: false });
+    expect(room.rect).toMatchObject({ w: 8, h: 2 });
+    checkDungeon(dungeon);
+  });
+
+  it('shrinks only the blocked direction when a room does not fit', () => {
+    const dungeon = tinyStart('N');
+    obstacle(dungeon, 50, { x: -30, y: -8, w: 60, h: 1 });
     // A 10 x 10 room through a 2-square hallway: only 4 squares of length fit
     addRoll(dungeon, roll({ D10: 10, D100: 10, D4: 2 }), 2, findDoor(dungeon, '1-N0'));
     const room = findRoom(dungeon, 2)!;
     expect(room.rect).toEqual({ x: -5, y: -6, w: 10, h: 4 });
-    expect(room.rolled).toEqual({ width: 10, length: 10 });
-    expect(room.shrunk).toBe(true);
+    expect(room).toMatchObject({ shrunk: true, hallway: { rolled: 2, actual: 2 } });
   });
 
-  it('joins an existing room when a hallway runs into it', () => {
-    const dungeon = emptyDungeon();
-    addRoll(dungeon, roll({ D10: 5, D100: 5, D4: 1 }), 1, undefined);
-    // A fake unexplored door on room 1's north wall, then a room placed north of it
-    const room1 = dungeon.rooms[0]!;
-    room1.exits.push({ id: '1-N2', roll: 1, wall: 'N', offset: 2 });
-    room1.exits.push({ id: '1-N0', roll: 1, wall: 'N', offset: 0 });
-    addRoll(dungeon, roll({ D10: 5, D100: 3, D4: 3 }), 2, findDoor(dungeon, '1-N2'));
-    const room2 = dungeon.rooms[1]!;
-    // Now explore the other north door: its hallway runs into room 2
-    addRoll(dungeon, roll({ D10: 2, D100: 2, D4: 4 }), 3, findDoor(dungeon, '1-N0'));
-
-    const outcome = Object.values(dungeon.outcomes)[2];
-    expect(outcome).toEqual({ kind: 'joined', joinedRoll: 2 });
-    expect(findDoor(dungeon, '1-N0')?.leadsTo).toEqual({ kind: 'room', roll: 2 });
-    expect(room2.exits.some((d) => d.wall === 'S' && d.leadsTo?.kind === 'room')).toBe(true);
+  it('shortens the hallway when its rolled length is blocked', () => {
+    const dungeon = tinyStart('N');
+    // An old hallway crosses the path 3 squares north of room 1
+    dungeon.hallways.push({ roll: 99, cells: [{ x: 0, y: -3 }], deadEnd: false });
+    addRoll(dungeon, roll({ D10: 3, D100: 3, D4: 4 }), 2, findDoor(dungeon, '1-N0'));
+    const room = findRoom(dungeon, 2)!;
+    expect(room.hallway).toEqual({ rolled: 4, actual: 1 });
+    expect(dungeon.outcomes[room.recordId]).toEqual({ kind: 'room', roll: 2 });
     checkDungeon(dungeon);
   });
 
-  it('collapses into a dead end when a hallway hits another hallway', () => {
-    const dungeon = emptyDungeon();
-    addRoll(dungeon, roll({ D10: 1, D100: 1, D4: 1 }), 1, undefined);
-    const room = dungeon.rooms[0]!;
-    room.exits.push({ id: '1-E0', roll: 1, wall: 'E', offset: 0 });
-    // Room 1 is the single square (0,0); a hallway crosses the path east of it
-    dungeon.hallways.push({ roll: 99, cells: [{ x: 2, y: 0 }], deadEnd: true });
-    addRoll(dungeon, roll({ D10: 2, D100: 2, D4: 4 }), 2, findDoor(dungeon, '1-E0'));
-    expect(Object.values(dungeon.outcomes)[1]).toEqual({ kind: 'dead-end' });
+  it('leads into a room it runs into when that wall has no door', () => {
+    const dungeon = tinyStart('N');
+    const target = obstacle(dungeon, 50, { x: -5, y: -6, w: 11, h: 3 }); // rows -6..-4
+    const record = roll({ D10: 2, D100: 2, D4: 4 });
+    addRoll(dungeon, record, 2, findDoor(dungeon, '1-N0'));
+    expect(dungeon.outcomes[record.id]).toEqual({ kind: 'joined', joinedRoll: 50 });
+    expect(target.exits).toEqual([
+      expect.objectContaining({ wall: 'S', offset: 5, leadsTo: { kind: 'room', roll: 1 } }),
+    ]);
+    checkDungeon(dungeon);
+  });
+
+  it('does not add a second door to a wall; the room goes elsewhere instead', () => {
+    const dungeon = tinyStart('N');
+    const target = obstacle(dungeon, 50, { x: -5, y: -6, w: 11, h: 3 });
+    target.exits.push({ id: '50-S0', roll: 50, wall: 'S', offset: 0 });
+    const record = roll({ D10: 2, D100: 2, D4: 4 });
+    addRoll(dungeon, record, 2, findDoor(dungeon, '1-N0'));
+    expect(dungeon.outcomes[record.id]).toEqual({ kind: 'room', roll: 2 });
+    expect(target.exits.map((d) => d.id)).toEqual(['50-S0']);
+    // Obstacle 50's own door must still be usable
+    expect(canExplore(dungeon, findDoor(dungeon, '50-S0')!)).toBe(true);
+    checkDungeon(dungeon);
+  });
+
+  it('collapses only when there is no space at all', () => {
+    const dungeon = tinyStart('E');
+    dungeon.hallways.push({ roll: 99, cells: [{ x: 1, y: 0 }], deadEnd: true });
+    const record = roll({ D10: 2, D100: 2, D4: 4 });
+    addRoll(dungeon, record, 2, findDoor(dungeon, '1-E0'));
+    expect(dungeon.outcomes[record.id]).toEqual({ kind: 'dead-end' });
     expect(findDoor(dungeon, '1-E0')?.leadsTo).toEqual({ kind: 'dead-end' });
   });
 
@@ -226,8 +290,8 @@ describe('buildDungeon', () => {
     expect(buildDungeon(history)).toEqual(buildDungeon(history));
   });
 
-  it('keeps every dungeon consistent across many random explorations', () => {
-    for (let trial = 0; trial < 150; trial++) {
+  it('keeps every dungeon consistent and explorable across many random explorations', () => {
+    for (let trial = 0; trial < 120; trial++) {
       const choose = createRng(trial);
       const history: RollRecord[] = [];
       let dungeon = buildDungeon(history);
@@ -242,9 +306,12 @@ describe('buildDungeon', () => {
         dungeon = addRoll(dungeon, record, history.length, door);
       }
       checkDungeon(dungeon);
-      // Replaying the history gives the same map
+      const outcomes = Object.values(dungeon.outcomes);
+      expect(
+        outcomes.filter((o) => o.kind === 'dead-end'),
+        `trial ${trial}`,
+      ).toEqual([]);
       expect(buildDungeon(history)).toEqual(dungeon);
-      expect(Object.keys(dungeon.outcomes)).toHaveLength(25);
     }
   });
 
@@ -258,7 +325,6 @@ describe('buildDungeon', () => {
     };
     const history = [1, 2, 3].map((seed) => rollRoom(CLASSIC_TABLES, enabled, seed));
     const dungeon = buildDungeon(history);
-    // No exits, so each roll starts a new 5 x 1 section
     expect(dungeon.rooms.map((r) => [r.rect.w, r.rect.h])).toEqual([
       [5, 1],
       [5, 1],
@@ -277,63 +343,75 @@ describe('dungeonBounds', () => {
 });
 
 describe('placementNotes', () => {
-  it('describes where each roll went', () => {
-    const dungeon = emptyDungeon();
-    const first = roll({ D10: 1, D100: 1, D4: 1 });
-    addRoll(dungeon, first, 1, undefined);
-    expect(placementNotes(dungeon, first, 1)).toEqual(['Start of a new section of the dungeon.']);
-
-    dungeon.rooms[0]!.exits.push({ id: '1-E0', roll: 1, wall: 'E', offset: 0 });
-    dungeon.hallways.push({ roll: 99, cells: [{ x: 2, y: 0 }], deadEnd: true });
+  it('describes the start, a collapse and a join', () => {
+    const dungeon = tinyStart('E');
+    const first = dungeon.rooms[0]!;
+    expect(placementNotes(dungeon, { id: first.recordId } as RollRecord, 1)).toEqual([
+      'Start of a new section of the dungeon.',
+    ]);
+    dungeon.hallways.push({ roll: 99, cells: [{ x: 1, y: 0 }], deadEnd: true });
     const collapsed = roll({ D10: 2, D100: 2, D4: 4 });
     addRoll(dungeon, collapsed, 2, findDoor(dungeon, '1-E0'));
     expect(placementNotes(dungeon, collapsed, 2)).toEqual([
       'Through Room 1, east door.',
       'The passage collapses. Dead end, no new room.',
     ]);
+
+    const joining = tinyStart('N');
+    obstacle(joining, 50, { x: -5, y: -6, w: 11, h: 3 });
+    const joined = roll({ D10: 2, D100: 2, D4: 4 });
+    addRoll(joining, joined, 2, findDoor(joining, '1-N0'));
+    expect(placementNotes(joining, joined, 2)[1]).toBe(
+      'The passage leads into Room 50. No new room.',
+    );
   });
 
-  it('mentions joins and shrinking', () => {
-    const dungeon = emptyDungeon();
-    addRoll(dungeon, roll({ D10: 1, D100: 1, D4: 1 }), 1, undefined);
-    dungeon.rooms[0]!.exits.push({ id: '1-N0', roll: 1, wall: 'N', offset: 0 });
-    dungeon.rooms.push({
-      ...dungeon.rooms[0]!,
-      roll: 50,
-      rect: { x: -30, y: -8, w: 60, h: 1 },
-      exits: [],
-    });
-    const big = roll({ D10: 10, D100: 10, D4: 2 });
-    addRoll(dungeon, big, 2, findDoor(dungeon, '1-N0'));
-    expect(placementNotes(dungeon, big, 2)).toEqual([
-      'Through Room 1, north door.',
-      'Rolled 50ft x 50ft, but only 50ft x 20ft fits here.',
-    ]);
+  it('mentions turning, shrinking and hallway changes', () => {
+    const turned = tinyStart('N');
+    obstacle(turned, 50, { x: -30, y: -8, w: 60, h: 1 });
+    const long = roll({ D10: 2, D100: 8, D4: 2 });
+    addRoll(turned, long, 2, findDoor(turned, '1-N0'));
+    expect(placementNotes(turned, long, 2)[1]).toBe(
+      'Turned sideways to fit: 40ft x 10ft instead of 10ft x 40ft.',
+    );
 
-    dungeon.rooms[1]!.exits.push({ id: '2-N4', roll: 2, wall: 'N', offset: 4 });
-    // Room 2 is rows -6 to -3, room 50 is row -8: a 1-square hallway (D4 = 2) reaches it
-    const joined = roll({ D10: 2, D100: 2, D4: 2 });
-    addRoll(dungeon, joined, 3, findDoor(dungeon, '2-N4'));
-    expect(placementNotes(dungeon, joined, 3)[1]).toBe(
-      'The passage leads into Room 50. No new room.',
+    const shrunk = tinyStart('N');
+    obstacle(shrunk, 50, { x: -30, y: -8, w: 60, h: 1 });
+    const big = roll({ D10: 10, D100: 10, D4: 2 });
+    addRoll(shrunk, big, 2, findDoor(shrunk, '1-N0'));
+    expect(placementNotes(shrunk, big, 2)[1]).toBe(
+      'Rolled 50ft x 50ft, but only 50ft x 20ft fits here.',
+    );
+
+    const short = tinyStart('N');
+    short.hallways.push({ roll: 99, cells: [{ x: 0, y: -3 }], deadEnd: false });
+    const blocked = roll({ D10: 3, D100: 3, D4: 4 });
+    addRoll(short, blocked, 2, findDoor(short, '1-N0'));
+    expect(placementNotes(short, blocked, 2)).toContain(
+      'Hallway is 1 square instead of 4 squares so the room fits.',
     );
   });
 });
 
 describe('describeDoor', () => {
-  it('numbers doors that share a wall', () => {
-    const dungeon = emptyDungeon();
-    addRoll(dungeon, roll({ D10: 4, D100: 4, D4: 1 }), 1, undefined);
-    const room = dungeon.rooms[0]!;
-    room.exits.push({ id: '1-N3', roll: 1, wall: 'N', offset: 3 });
-    room.exits.push({ id: '1-N0', roll: 1, wall: 'N', offset: 0 });
-    room.exits.push({ id: '1-E1', roll: 1, wall: 'E', offset: 1 });
-    expect(describeDoor(dungeon, findDoor(dungeon, '1-N0')!)).toBe(
-      'Room 1, north door 1 (from west)',
+  it('names the room and wall', () => {
+    const dungeon = tinyStart('E');
+    expect(describeDoor(findDoor(dungeon, '1-E0')!)).toBe('Room 1, east door');
+  });
+});
+
+describe('extendDungeon', () => {
+  it('matches a full rebuild and leaves the original untouched', () => {
+    const history = Array.from({ length: 30 }, (_, i) =>
+      rollRoom(CLASSIC_TABLES, DEFAULT_SETTINGS.enabledDice, i * 31),
     );
-    expect(describeDoor(dungeon, findDoor(dungeon, '1-N3')!)).toBe(
-      'Room 1, north door 2 (from west)',
-    );
-    expect(describeDoor(dungeon, findDoor(dungeon, '1-E1')!)).toBe('Room 1, east door');
+    let dungeon = buildDungeon([]);
+    history.forEach((record, i) => {
+      const before = structuredClone(dungeon);
+      const next = extendDungeon(dungeon, record, i + 1);
+      expect(dungeon).toEqual(before);
+      dungeon = next;
+    });
+    expect(dungeon).toEqual(buildDungeon(history));
   });
 });

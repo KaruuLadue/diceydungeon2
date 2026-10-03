@@ -120,15 +120,22 @@ export function HelpPage() {
         <ul>
           <li>
             The hallway runs straight out of the door for the D4's length (none on a 1), and the new
-            room is centred on its end. Extra exits go on random walls.
+            room is centred on its end.
           </li>
           <li>
-            Rooms never overlap. If the rolled room doesn't fit, it's shifted sideways or made
-            smaller, and its card says so.
+            Each wall has at most one door. Extra exits go on random walls, but only where there's
+            space for another room, so every gold door can be explored. A room with no space on a
+            wall gets fewer exits, and its card says so.
           </li>
           <li>
-            If a hallway runs into another room, it leads into that room instead. If it hits another
-            hallway or no room fits at all, the passage collapses: a red ✕ marks the dead end.
+            Rooms never overlap, and new rooms never take the space an unexplored door needs. If the
+            rolled room doesn't fit, it's shifted along the wall, turned 90°, or made smaller, in
+            that order of preference. If even that fails, the hallway is made shorter or longer. The
+            card says what changed.
+          </li>
+          <li>
+            If a hallway runs into another room on a wall with no door, it leads into that room
+            instead.
           </li>
           <li>
             When every door is explored, <strong>Roll</strong> starts a new section of the dungeon
