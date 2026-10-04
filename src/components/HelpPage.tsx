@@ -37,14 +37,41 @@ export function HelpPage() {
             Or press <strong>Roll</strong> to explore the door it names.
           </li>
           <li>
-            Use <strong>Export Log</strong> to download your roll history as a text file, and{' '}
-            <strong>Reset</strong> to start a new dungeon.
+            Use <strong>Undo</strong> to take back a roll, and <strong>Export Log</strong> to
+            download your roll history as a text file.
           </li>
         </ol>
         <p>
           When two dice show the same number, those results are highlighted. Treat matches as a sign
           that something extra is going on, such as a second encounter.
         </p>
+      </section>
+
+      <section className="panel prose">
+        <h2>Saving and sharing</h2>
+        <ul>
+          <li>
+            Everything is saved in this browser as you go. Keep as many dungeons as you like and
+            switch between them with the <strong>Dungeon</strong> list. <strong>New</strong> starts
+            another one; <strong>Rename</strong> and <strong>Delete</strong> change the one you’re
+            in.
+          </li>
+          <li>
+            <strong>Undo</strong> takes back the last roll (Ctrl+Z) and <strong>Redo</strong> puts
+            it back (Ctrl+Y). Each dungeon has a seed that decides its dice, so rolling again after
+            an undo gives the same dice, even through a different door.
+          </li>
+          <li>
+            <strong>Share Link</strong> copies a link to the dungeon. Whoever opens it gets their
+            own copy, with the same rooms in the same places, which they can keep exploring. The
+            link holds the seed and the doors you chose, so it stays short. If you’ve edited your
+            tables, the changed tables go in the link too.
+          </li>
+          <li>
+            <strong>Export</strong> saves the dungeon as a file, as a backup or to move it to
+            another device. <strong>Import</strong> adds a dungeon from a file.
+          </li>
+        </ul>
       </section>
 
       <section className="panel prose">

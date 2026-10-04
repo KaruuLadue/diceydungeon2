@@ -116,12 +116,153 @@ test('map zoom and fit controls work', async ({ page }) => {
   expect(await scaleOf()).toBeCloseTo(fitted, 5);
 });
 
-test('reset clears the history after confirming', async ({ page }) => {
-  await page.getByRole('button', { name: 'Roll', exact: true }).click();
-  page.once('dialog', (dialog) => dialog.accept());
-  await page.getByRole('button', { name: 'Reset' }).click();
+test('undo takes back rolls and redo puts them back', async ({ page }) => {
+  const roll = page.getByRole('button', { name: 'Roll', exact: true });
+  const undo = page.getByRole('button', { name: 'Undo' });
+  const redo = page.getByRole('button', { name: 'Redo' });
+  await expect(undo).toBeDisabled();
+  await roll.click();
+  await roll.click();
+  const second = await page.locator('.roll-card').first().textContent();
+
+  await undo.click();
+  await expect(page.locator('.roll-card h2')).toHaveText('Roll 1');
+  await expect(page.locator('.map-svg [data-room]')).toHaveCount(1);
+  await redo.click();
+  await expect(page.locator('.roll-card').first()).toHaveText(second!);
+  await expect(redo).toBeDisabled();
+
+  // Keyboard shortcuts, and undo survives a reload
+  await page.keyboard.press('Control+z');
+  await page.keyboard.press('Control+z');
+  await expect(page.getByText('Press Roll to place the entrance room')).toBeVisible();
+  await page.keyboard.press('Control+y');
+  await expect(page.locator('.roll-card h2')).toHaveText('Roll 1');
+  await page.reload();
+  await expect(page.locator('.roll-card h2')).toHaveText('Roll 1');
+
+  // The dungeon's seed decides the dice: rolling again after an undo gives the same ones
+  await roll.click();
+  await page.keyboard.press('Control+z');
+  await roll.click();
+  await expect(page.locator('.roll-card').first()).toHaveText(second!);
+});
+
+test('keeps several dungeons and switches between them', async ({ page }) => {
+  const roll = page.getByRole('button', { name: 'Roll', exact: true });
+  const select = page.getByLabel('Dungeon', { exact: true });
+  await roll.click();
+  await expect(select.locator('option:checked')).toHaveText('Dungeon 1 (1 roll)');
+
+  page.once('dialog', (dialog) => dialog.accept('The Sunken Crypt'));
+  await page.getByRole('button', { name: 'New', exact: true }).click();
+  await expect(select.locator('option:checked')).toHaveText('The Sunken Crypt (0 rolls)');
   await expect(page.locator('.roll-card')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Reset' })).toBeDisabled();
+  await roll.click();
+  await roll.click();
+
+  await select.selectOption({ label: 'Dungeon 1 (1 roll)' });
+  await expect(page.locator('.roll-card h2')).toHaveText('Roll 1');
+  page.once('dialog', (dialog) => dialog.accept('The Old Mine'));
+  await page.getByRole('button', { name: 'Rename' }).click();
+  await expect(select.locator('option:checked')).toHaveText('The Old Mine (1 roll)');
+
+  await page.reload();
+  await expect(select.locator('option')).toHaveText([
+    'The Old Mine (1 roll)',
+    'The Sunken Crypt (2 rolls)',
+  ]);
+  await expect(select.locator('option:checked')).toHaveText('The Old Mine (1 roll)');
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Delete' }).click();
+  await expect(select.locator('option')).toHaveText(['The Sunken Crypt (2 rolls)']);
+  await expect(page.locator('.roll-card h2')).toHaveText('Roll 2');
+});
+
+test('exports a dungeon to a file and imports it as a copy', async ({ page }) => {
+  const roll = page.getByRole('button', { name: 'Roll', exact: true });
+  await roll.click();
+  await roll.click();
+  await roll.click();
+  const map = await page.locator('.map-svg > g').innerHTML();
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe('dungeon-1.dungeon.json');
+  const text = await readFile(await file.path(), 'utf8');
+
+  await page.getByTestId('dungeon-import-input').setInputFiles({
+    name: 'dungeon-1.dungeon.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(text),
+  });
+  await expect(page.getByRole('status')).toContainText('Imported “Dungeon 1”.');
+  const select = page.getByLabel('Dungeon', { exact: true });
+  await expect(select.locator('option:checked')).toHaveText('Dungeon 1 (2) (3 rolls)');
+  await page.getByRole('button', { name: 'Fit' }).click();
+  await expect(page.locator('.map-svg > g')).toHaveJSProperty('innerHTML', map);
+
+  await page.getByTestId('dungeon-import-input').setInputFiles({
+    name: 'bad.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{"D4": []}'),
+  });
+  await expect(page.getByRole('status')).toContainText(
+    "Couldn't import: The file is not a Dicey Dungeon 2 dungeon.",
+  );
+});
+
+test('share links open a copy of the dungeon', async ({ page, context, browser }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  const roll = page.getByRole('button', { name: 'Roll', exact: true });
+  await roll.click();
+  // Explore a door from the list, not the default one
+  await page.locator('.door-list button').last().click();
+  await roll.click();
+  await page.getByRole('button', { name: 'Fit' }).click();
+  const map = await page.locator('.map-svg > g').innerHTML();
+  const rolls = await page.locator('.roll-card').first().textContent();
+
+  await page.getByRole('button', { name: 'Share Link' }).click();
+  await expect(page.getByRole('status')).toContainText('Share link copied.');
+  const link = (await page.evaluate('navigator.clipboard.readText()')) as string;
+  expect(link).toMatch(/#\/share\/[\w-]+$/);
+
+  // Open it as someone else would: in a fresh browser
+  const other = await browser.newPage();
+  await other.goto(link);
+  await expect(other.getByRole('status')).toContainText('Opened the shared dungeon “Dungeon 1”.');
+  await expect(other).toHaveURL(/#\/$/);
+  await expect(other.locator('.roll-card').first()).toHaveText(rolls!);
+  await other.getByRole('button', { name: 'Fit' }).click();
+  expect(await other.locator('.map-svg > g').innerHTML()).toBe(map);
+  await other.close();
+
+  // A broken link is reported
+  await page.goto('./#/share/garbage');
+  await expect(page.getByRole('status')).toContainText("Couldn't open the link");
+});
+
+test('moves the history saved by version 0.5 into a dungeon', async ({ page }) => {
+  await page.getByRole('button', { name: 'Roll', exact: true }).click();
+  const card = await page.locator('.roll-card').first().textContent();
+  // Recreate 0.5's storage: one history and no dungeon list
+  await page.evaluate(() => {
+    const library = JSON.parse(localStorage.getItem('dd2.library')!);
+    localStorage.setItem(
+      'dd2.history',
+      JSON.stringify({ version: 1, data: library.data.dungeons[0].history }),
+    );
+    localStorage.removeItem('dd2.library');
+  });
+  await page.reload();
+  await expect(page.getByLabel('Dungeon', { exact: true }).locator('option')).toHaveText([
+    'Dungeon 1 (1 roll)',
+  ]);
+  await expect(page.locator('.roll-card').first()).toHaveText(card!);
+  expect(await page.evaluate(() => localStorage.getItem('dd2.history'))).toBeNull();
 });
 
 test('settings turn drawings and dice on and off, and persist', async ({ page }) => {

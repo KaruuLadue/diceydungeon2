@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { addDungeon, newDungeon } from './library';
 import { rollRoom } from './roll';
 import { DEFAULT_SETTINGS } from './settings';
 import {
-  loadHistory,
+  loadLibrary,
   loadSettings,
   loadTables,
   loadV1Tables,
   memoryStore,
-  saveHistory,
+  saveLibrary,
   saveSettings,
   saveTables,
 } from './storage';
@@ -34,37 +35,61 @@ describe('settings storage', () => {
   });
 });
 
-describe('history storage', () => {
-  it('round-trips roll records', () => {
+describe('library storage', () => {
+  const now = new Date('2026-10-03T12:00:00Z');
+  const rolls = [1, 2, 3].map((seed) =>
+    rollRoom(CLASSIC_TABLES, DEFAULT_SETTINGS.enabledDice, seed),
+  );
+
+  it('starts with one empty dungeon', () => {
+    const library = loadLibrary(memoryStore(), 42, now);
+    expect(library.dungeons).toHaveLength(1);
+    expect(library.dungeons[0]).toMatchObject({ name: 'Dungeon 1', seed: 42, history: [] });
+    expect(library.current).toBe(library.dungeons[0]!.id);
+  });
+
+  it('round-trips dungeons', () => {
     const store = memoryStore();
-    const history = [1, 2, 3].map((seed) =>
-      rollRoom(CLASSIC_TABLES, DEFAULT_SETTINGS.enabledDice, seed),
-    );
-    saveHistory(store, history);
-    expect(loadHistory(store)).toEqual(history);
+    const library = addDungeon(loadLibrary(store, 1, now), newDungeon('Crypt', 7, rolls, now));
+    expect(saveLibrary(store, library)).toBe(true);
+    expect(loadLibrary(store, 99)).toEqual(library);
   });
 
-  it('drops malformed records', () => {
-    const good = rollRoom(CLASSIC_TABLES, DEFAULT_SETTINGS.enabledDice, 1);
+  it('moves a history saved before multiple dungeons into Dungeon 1, then removes it', () => {
     const store = memoryStore({
-      'dd2.history': JSON.stringify({ version: 1, data: [good, { id: 5 }, null] }),
+      'dd2.history': JSON.stringify({ version: 1, data: [rolls[0], { id: 5 }, null] }),
     });
-    expect(loadHistory(store)).toEqual([good]);
+    const library = loadLibrary(store, 42, now);
+    expect(library.dungeons[0]).toMatchObject({ name: 'Dungeon 1', history: [rolls[0]] });
+    saveLibrary(store, library);
+    expect(store.getItem('dd2.history')).toBeNull();
+    expect(loadLibrary(store, 1)).toEqual(library);
   });
 
-  it('round-trips extra rolls and drops records with malformed ones', () => {
+  it('drops malformed records and dungeons', () => {
     const withExtra = {
-      ...rollRoom(CLASSIC_TABLES, DEFAULT_SETTINGS.enabledDice, 1),
+      ...rolls[0]!,
       extra: [{ die: 'D8', from: 'D20', value: 3, description: 'x' }],
     };
     const broken = {
       ...withExtra,
       extra: [{ die: 'D9', from: 'D20', value: 3, description: 'x' }],
     };
+    const good = newDungeon('Good', 1, [], now);
     const store = memoryStore({
-      'dd2.history': JSON.stringify({ version: 1, data: [withExtra, broken] }),
+      'dd2.library': JSON.stringify({
+        version: 1,
+        data: {
+          current: 'missing',
+          dungeons: [{ ...good, history: [withExtra, broken, { id: 5 }] }, { id: 3 }, good],
+        },
+      }),
     });
-    expect(loadHistory(store)).toEqual([withExtra]);
+    const library = loadLibrary(store, 1);
+    // The duplicate id and the broken dungeon are dropped; the current id falls back to the first
+    expect(library.dungeons).toHaveLength(1);
+    expect(library.dungeons[0]!.history).toEqual([withExtra]);
+    expect(library.current).toBe(good.id);
   });
 });
 

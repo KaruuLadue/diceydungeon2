@@ -45,7 +45,7 @@ Each phase ends with something deployed.
 | 1   | Match v1                 | Everything v1 does, with v1's rules: tables, rolling, room drawings, settings, history, export, table editor, v1 import ✅ |
 | 2   | Table effects            | Entries can roll other dice again ("roll again", "Roll D8 and D12 again"), editable per entry ✅                           |
 | 3   | Connected map (playable) | Click a door and the next room attaches there; random-wall exits, joins, dead ends, pan and zoom, room details ✅          |
-| 4   | Saving and sharing       | Multiple dungeons, undo, export and import of whole dungeons, share links by seed                                          |
+| 4   | Saving and sharing       | Multiple dungeons, undo, export and import of whole dungeons, share links by seed ✅                                       |
 | 5   | Packs                    | 2–3 themed packs (crypt, sewer, derelict ship), choosing a pack per dungeon                                                |
 | 6   | Solo layer               | Auto-journal and notes, visited and cleared states, optional tracker (HP, light, rations, keys), GM mode                   |
 | 7   | Polish                   | Dice animation, offline install, accessibility pass, Markdown and PNG export                                               |

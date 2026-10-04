@@ -4,6 +4,24 @@ All notable changes to Dicey Dungeon 2 are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-10-03
+
+Saving and sharing.
+
+### Added
+
+- Multiple dungeons: switch between them with the Dungeon list, and use New, Rename and Delete to manage them
+- Undo and Redo for rolls (Ctrl+Z, Ctrl+Y or Ctrl+Shift+Z)
+- Share Link copies a link that gives whoever opens it their own copy of the dungeon. The link holds the dungeon's seed and the doors chosen, plus any tables that differ from Classic, so it stays short (a 30-room dungeon is a few hundred characters)
+- Export and Import save a whole dungeon to a file and add one back as a copy
+- Instructions section on saving and sharing
+
+### Changed
+
+- Each dungeon has a seed that decides its dice, so the same seed and doors always give the same dungeon. Rolling again after an undo gives the same dice
+- Reset is gone: use New to start another dungeon, or Delete to throw one away
+- Your existing roll history becomes "Dungeon 1"
+
 ## [0.5.0] - 2026-10-03
 
 Smarter room placement, so the map can always keep growing.

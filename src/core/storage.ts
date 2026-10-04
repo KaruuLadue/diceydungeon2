@@ -1,5 +1,6 @@
 import { DICE } from './dice';
-import type { RollRecord } from './roll';
+import { addDungeon, newDungeon, parseLibrary, type Library } from './library';
+import { isRollRecord } from './roll';
 import { parseSettings, type Settings } from './settings';
 import { CLASSIC_TABLES, mergeTables, type TableSet } from './tables';
 
@@ -16,10 +17,13 @@ export interface KeyValueStore {
  */
 const KEYS = {
   settings: { key: 'dd2.settings', version: 1 },
-  history: { key: 'dd2.history', version: 1 },
+  library: { key: 'dd2.library', version: 1 },
   // v2: entries can be objects with effects. v1 (plain text entries) still loads.
   tables: { key: 'dd2.tables', version: 2 },
 } as const;
+
+/** Where 0.2–0.5 saved the one roll history, before there were multiple dungeons */
+const OLD_HISTORY_KEY = 'dd2.history';
 
 /** Where v1 saved custom tables (same origin, so v2 can read them) */
 const V1_TABLES_KEY = 'customRollTables';
@@ -53,47 +57,28 @@ export function saveSettings(store: KeyValueStore, settings: Settings): boolean 
   return write(store, KEYS.settings.key, KEYS.settings.version, settings);
 }
 
-function isRollRecord(value: unknown): value is RollRecord {
-  if (typeof value !== 'object' || value === null) return false;
-  const record = value as Record<string, unknown>;
-  if (
-    typeof record.id !== 'string' ||
-    typeof record.timestamp !== 'string' ||
-    typeof record.seed !== 'number' ||
-    typeof record.results !== 'object' ||
-    record.results === null
-  ) {
-    return false;
+/**
+ * The saved dungeons. The first time, a roll history saved before there were
+ * multiple dungeons becomes "Dungeon 1", and with nothing saved there is one
+ * empty dungeon. `seed` is the new dungeon's seed in either case.
+ */
+export function loadLibrary(store: KeyValueStore, seed: number, now = new Date()): Library {
+  const saved = parseLibrary(read(store, KEYS.library.key)?.data);
+  if (saved) return saved;
+  const old = read(store, OLD_HISTORY_KEY)?.data;
+  const history = Array.isArray(old) ? old.filter(isRollRecord) : [];
+  return addDungeon({ current: '', dungeons: [] }, newDungeon('Dungeon 1', seed, history, now));
+}
+
+/** Save the dungeons. The old single history is removed once they're safely saved. */
+export function saveLibrary(store: KeyValueStore, library: Library): boolean {
+  if (!write(store, KEYS.library.key, KEYS.library.version, library)) return false;
+  try {
+    store.removeItem(OLD_HISTORY_KEY);
+  } catch {
+    // Harmless: the saved library takes priority
   }
-  const results = record.results as Record<string, unknown>;
-  const validResults = Object.entries(results).every(
-    ([die, result]) => isDie(die) && isDieResult(result),
-  );
-  // Records saved before table effects existed have no `extra`
-  const validExtra =
-    record.extra === undefined ||
-    (Array.isArray(record.extra) &&
-      record.extra.every((extra: Record<string, unknown> | null) => {
-        return isDieResult(extra) && isDie(extra?.die) && isDie(extra?.from);
-      }));
-  const validDoor = record.door === undefined || typeof record.door === 'string';
-  return validResults && validExtra && validDoor;
-}
-
-const isDie = (value: unknown) => (DICE as readonly unknown[]).includes(value);
-
-function isDieResult(value: unknown): boolean {
-  const r = value as Record<string, unknown> | null;
-  return typeof r?.value === 'number' && typeof r.description === 'string';
-}
-
-export function loadHistory(store: KeyValueStore): RollRecord[] {
-  const data = read(store, KEYS.history.key)?.data;
-  return Array.isArray(data) ? data.filter(isRollRecord) : [];
-}
-
-export function saveHistory(store: KeyValueStore, history: RollRecord[]): boolean {
-  return write(store, KEYS.history.key, KEYS.history.version, history);
+  return true;
 }
 
 export function loadTables(store: KeyValueStore): TableSet {

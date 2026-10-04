@@ -41,3 +41,15 @@ export function randomSeed(): number {
   const [seed = 0] = crypto.getRandomValues(new Uint32Array(1));
   return seed;
 }
+
+/**
+ * Seed for roll `n` (1-based) of a dungeon, so a dungeon's seed decides every
+ * roll in it. Rolling again after an undo gives the same dice.
+ */
+export function rollSeed(dungeonSeed: number, n: number): number {
+  // splitmix32-style mixing of the two numbers
+  let h = (dungeonSeed ^ Math.imul(n, 0x9e3779b9)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 0;
+}

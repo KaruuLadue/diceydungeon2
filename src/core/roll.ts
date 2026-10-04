@@ -93,6 +93,41 @@ export function rollRoom(
   };
 }
 
+/** Checks a saved or imported roll record */
+export function isRollRecord(value: unknown): value is RollRecord {
+  if (typeof value !== 'object' || value === null) return false;
+  const record = value as Record<string, unknown>;
+  if (
+    typeof record.id !== 'string' ||
+    typeof record.timestamp !== 'string' ||
+    typeof record.seed !== 'number' ||
+    typeof record.results !== 'object' ||
+    record.results === null
+  ) {
+    return false;
+  }
+  const results = record.results as Record<string, unknown>;
+  const validResults = Object.entries(results).every(
+    ([die, result]) => isDie(die) && isDieResult(result),
+  );
+  // Records saved before table effects existed have no `extra`
+  const validExtra =
+    record.extra === undefined ||
+    (Array.isArray(record.extra) &&
+      record.extra.every((extra: Record<string, unknown> | null) => {
+        return isDieResult(extra) && isDie(extra?.die) && isDie(extra?.from);
+      }));
+  const validDoor = record.door === undefined || typeof record.door === 'string';
+  return validResults && validExtra && validDoor;
+}
+
+const isDie = (value: unknown) => (DICE as readonly unknown[]).includes(value);
+
+function isDieResult(value: unknown): boolean {
+  const r = value as Record<string, unknown> | null;
+  return typeof r?.value === 'number' && typeof r.description === 'string';
+}
+
 /**
  * Values that more than one die rolled, for v1's "highlight matching rolls".
  * Only the main results count, not extra rolls.

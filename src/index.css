@@ -137,6 +137,59 @@ a:focus-visible {
   margin: 8px 0 16px;
 }
 
+/* Dungeon switcher */
+
+.dungeon-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 16px;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.dungeon-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--gold);
+  font-family: var(--font-display);
+}
+
+.dungeon-select select {
+  min-width: 0;
+  max-width: min(60vw, 320px);
+  padding: 6px 8px;
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  background: var(--panel-solid);
+  color: var(--text);
+  font: inherit;
+  font-family: var(--font-body);
+}
+
+.dungeon-select select:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 2px;
+}
+
+.dungeon-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dungeon-actions button {
+  padding: 6px 10px;
+  font-size: 15px;
+}
+
 .sticky-controls {
   position: sticky;
   top: 0;

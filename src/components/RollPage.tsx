@@ -13,10 +13,12 @@ interface Props {
   settings: Settings;
   history: RollRecord[];
   dungeon: Dungeon;
+  canRedo: boolean;
   onSettingsChange: (settings: Settings) => void;
   /** Roll through a door, or through the default next door when omitted */
   onRoll: (door?: Door) => void;
-  onReset: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   onExport: () => void;
 }
 
@@ -25,9 +27,11 @@ export function RollPage({
   settings,
   history,
   dungeon,
+  canRedo,
   onSettingsChange,
   onRoll,
-  onReset,
+  onUndo,
+  onRedo,
   onExport,
 }: Props) {
   const [showSettings, setShowSettings] = useState(false);
@@ -36,11 +40,6 @@ export function RollPage({
   const selectedRoll =
     choice && choice.atLength === history.length ? choice.roll : history.length || null;
   const setSelectedRoll = (roll: number) => setChoice({ roll, atLength: history.length });
-
-  const handleReset = () => {
-    if (history.length === 0) return;
-    if (confirm('Clear the whole roll history and start a new dungeon?')) onReset();
-  };
 
   const next = nextDoor(dungeon);
   const doors = unexploredDoors(dungeon);
@@ -63,8 +62,16 @@ export function RollPage({
         <button type="button" className="primary" onClick={() => onRoll()}>
           Roll
         </button>
-        <button type="button" onClick={handleReset} disabled={history.length === 0}>
-          Reset
+        <button
+          type="button"
+          onClick={onUndo}
+          disabled={history.length === 0}
+          aria-keyshortcuts="Control+Z"
+        >
+          Undo
+        </button>
+        <button type="button" onClick={onRedo} disabled={!canRedo} aria-keyshortcuts="Control+Y">
+          Redo
         </button>
         <button type="button" onClick={onExport} disabled={history.length === 0}>
           Export Log
